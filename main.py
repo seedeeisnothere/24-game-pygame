@@ -1,4 +1,4 @@
-import pygame
+import pygame  # type: ignore[import-not-found]
 
 SCREEN_HEIGHT = 800
 SCREEN_WIDTH = 1280
@@ -14,5 +14,7 @@ while running:
             running = False
 
     pygame.display.flip()
+
+    clock.tick(60)
 
 pygame.quit()
