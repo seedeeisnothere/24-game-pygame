@@ -1,4 +1,4 @@
-import pygame  # type: ignore[import-not-found]
+import pygame
 from settings import *
 
 def main():
@@ -15,7 +15,7 @@ def main():
     map_rect_bottomright = background_map.get_rect(bottomright=(1280, 800))
 
     car = pygame.image.load("assets/sprites/car.png").convert_alpha()
-    car = pygame.transform.scale(car, (96, 96))
+    car = pygame.transform.scale(car, (96, 60))
     car_rect = car.get_rect(center=screen_rect.center)
     car_x = tuple(car_rect)[0]
     car_y = tuple(car_rect)[1]
@@ -33,7 +33,8 @@ def main():
                 if map_x < tuple(map_rect_topleft)[0]:
                     map_x += 5
                 else:
-                    car_x -= 5
+                    if car_x > 0:
+                        car_x -= 5
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             if car_x < tuple(car_rect)[0]:
                 car_x += 5
@@ -41,7 +42,8 @@ def main():
                 if map_x > tuple(map_rect_bottomright)[0]:
                     map_x -= 5
                 else:
-                    car_x += 5
+                    if car_x < tuple(car.get_rect(bottomright=(1280, 800)))[0]:
+                        car_x += 5
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             if car_y > tuple(car_rect)[1]:
                 car_y -= 5
@@ -49,7 +51,8 @@ def main():
                 if map_y < tuple(map_rect_topleft)[1]:
                     map_y += 5
                 else:
-                    car_y -= 5
+                    if car_y > 0:
+                        car_y -= 5
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             if car_y < tuple(car_rect)[1]:
                 car_y += 5
@@ -57,13 +60,14 @@ def main():
                 if map_y > tuple(map_rect_bottomright)[1]:
                     map_y -= 5
                 else:
-                    car_y += 5
+                    if car_y < tuple(car.get_rect(bottomright=(1280, 800)))[1]:
+                        car_y += 5
 
 
         screen.blit(background_map, (map_x, map_y))
         screen.blit(car, (car_x, car_y))
 
-        pygame.display.update()
+        pygame.display.flip()
 
         clock.tick(60)
 

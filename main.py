@@ -1,4 +1,4 @@
-import pygame  # type: ignore[import-not-found]
+import pygame
 import game
 
 
