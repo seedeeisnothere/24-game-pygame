@@ -1,7 +1,9 @@
 import pygame
 from settings import *
+from systems.tilemap import *
 
 def main():
+    global screen
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     screen_rect = screen.get_rect()
@@ -19,6 +21,9 @@ def main():
     car_rect = car.get_rect(center=screen_rect.center)
     car_x = tuple(car_rect)[0]
     car_y = tuple(car_rect)[1]
+
+    tiles = load_tiles("assets/tiles/Grass.png")
+    map_surface = load_map("assets/map/map.json", tiles)
 
     while running:
         for event in pygame.event.get():
@@ -66,6 +71,10 @@ def main():
 
         screen.blit(background_map, (map_x, map_y))
         screen.blit(car, (car_x, car_y))
+
+        screen.fill((60, 90, 120))
+        screen.blit(map_surface, (0, 0))
+        pygame.display.flip()
 
         pygame.display.flip()
 
