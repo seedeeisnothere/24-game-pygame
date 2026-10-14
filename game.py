@@ -12,9 +12,10 @@ def main():
 
     running = True
     map_x, map_y = 0, 0
-    background_map = pygame.image.load("placeholder_map.png").convert()
-    map_rect_topleft = background_map.get_rect(topleft=(0, 0))
-    map_rect_bottomright = background_map.get_rect(bottomright=(1280, 800))
+    tiles = load_tiles("assets/tiles/Grass.png")
+    map_surface = load_map("assets/map/map.json", tiles)
+    map_rect_topleft = map_surface.get_rect(topleft=(0, 0))
+    map_rect_bottomright = map_surface.get_rect(bottomright=(1280, 800))
 
     car = pygame.image.load("assets/sprites/car.png").convert_alpha()
     car = pygame.transform.scale(car, (96, 60))
@@ -22,8 +23,7 @@ def main():
     car_x = tuple(car_rect)[0]
     car_y = tuple(car_rect)[1]
 
-    tiles = load_tiles("assets/tiles/Grass.png")
-    map_surface = load_map("assets/map/map.json", tiles)
+    move_speed = 4
 
     while running:
         for event in pygame.event.get():
@@ -33,49 +33,47 @@ def main():
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             if car_x > tuple(car_rect)[0]:
-                car_x -= 5
+                car_x -= move_speed
             else:
                 if map_x < tuple(map_rect_topleft)[0]:
-                    map_x += 5
+                    map_x += move_speed
                 else:
                     if car_x > 0:
-                        car_x -= 5
+                        car_x -= move_speed
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             if car_x < tuple(car_rect)[0]:
-                car_x += 5
+                car_x += move_speed
             else:
                 if map_x > tuple(map_rect_bottomright)[0]:
-                    map_x -= 5
+                    map_x -= move_speed
                 else:
                     if car_x < tuple(car.get_rect(bottomright=(1280, 800)))[0]:
-                        car_x += 5
+                        car_x += move_speed
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             if car_y > tuple(car_rect)[1]:
-                car_y -= 5
+                car_y -= move_speed
             else:
                 if map_y < tuple(map_rect_topleft)[1]:
-                    map_y += 5
+                    map_y += move_speed
                 else:
                     if car_y > 0:
-                        car_y -= 5
+                        car_y -= move_speed
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             if car_y < tuple(car_rect)[1]:
-                car_y += 5
+                car_y += move_speed
             else:
                 if map_y > tuple(map_rect_bottomright)[1]:
-                    map_y -= 5
+                    map_y -= move_speed
                 else:
                     if car_y < tuple(car.get_rect(bottomright=(1280, 800)))[1]:
-                        car_y += 5
+                        car_y += move_speed
 
-
-        screen.blit(background_map, (map_x, map_y))
-        screen.blit(car, (car_x, car_y))
 
         screen.fill((60, 90, 120))
-        screen.blit(map_surface, (0, 0))
-        pygame.display.flip()
+        screen.blit(map_surface, (map_x, map_y))
+        screen.blit(car, (car_x, car_y))
 
+        
         pygame.display.flip()
 
         clock.tick(60)

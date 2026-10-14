@@ -1,6 +1,5 @@
 import json
 import pygame
-from game import *
 
 TILE = 16
 SCALE = 2
@@ -20,16 +19,15 @@ def find_firstgid(gid, firstgids):
     return best
 
 def load_tiles(sheet_path):
-    global screen
     sheet = pygame.image.load(sheet_path).convert_alpha()
-    columns = sheet.get_width() // 16
-    rows = sheet.get_height() // 16
+    columns = sheet.get_width() // TILE
+    rows = sheet.get_height() // TILE
     tiles = []
     for row in range(rows):
         for col in range(columns):
-            rect = pygame.Rect(col * 16, row * 16, TILE, TILE)
+            rect = pygame.Rect(col * TILE, row * TILE, TILE, TILE)
             tile = sheet.subsurface(rect)
-            tile = pygame.transform.scale(tile, (16 * SCALE, 16 * SCALE))
+            tile = pygame.transform.scale(tile, (TILE * SCALE, TILE * SCALE))
             tiles.append(tile)
 
     return tiles
@@ -44,7 +42,7 @@ def load_map(json_path, tiles):
     for tileset in data["tilesets"]:
         firstgids.append(tileset["firstgid"])
 
-    surface = pygame.Surface((map_width * 32, map_height * 32), pygame.SRCALPHA)
+    surface = pygame.Surface((map_width * TILE * SCALE, map_height * TILE * SCALE), pygame.SRCALPHA)
 
     for layer in data["layers"]:
         if layer["type"] != "tilelayer":
