@@ -2,7 +2,7 @@ import json
 import pygame
 
 TILE = 16
-SCALE = 2
+SCALE = 4
 
 
 def index_to_cell(index, width):
