@@ -10,9 +10,10 @@ class AnimatedSprite:
         self.idle_left = pygame.transform.flip(self.idle_right, True, False)
         self.walk_left = [pygame.transform.flip(f, True, False) for f in self.walk_right]
 
+        self.frame_duration_ms = frame_duration_ms
         self.frame_index = 0
         self.timer = 0.0
-        self.frame_duration = frame_duration_ms / 1000   # ms -> seconds, to match dt
+        self.frame_duration = self.frame_duration_ms / 1000   # ms -> seconds, to match dt
         self.moving = False
         self.facing_right = True
 
