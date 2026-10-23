@@ -77,3 +77,38 @@ def load_map(json_path):
             target.blit(tilesets[firstgid][local], (col * TILE * SCALE, row * TILE * SCALE))
 
     return below, above
+
+def load_collision(json_path):
+    with open(json_path, "r") as file:
+        data = json.load(file)
+
+    map_width = data["width"]
+    solid = set()
+
+    for layer in data["layers"]:
+        if layer["type"] != "tilelayer":
+            continue
+        if not layer["name"].lower().startswith("collision"):
+            continue
+
+        for index, gid in enumerate(layer["data"]):
+            gid = gid & FLIP_MASK
+            if gid == 0:
+                continue
+            row, col = index_to_cell(index, map_width)
+            solid.add((col, row))
+
+    return solid
+
+def touches_solid(hitbox, solid):
+    tile_size = TILE * SCALE
+    left = hitbox.left // tile_size
+    right = (hitbox.right - 1) // tile_size
+    top = hitbox.top // tile_size
+    bottom = (hitbox.bottom - 1) // tile_size
+
+    for row in range(top, bottom + 1):
+        for col in range(left, right + 1):
+            if (col, row) in solid:
+                return True
+    return False
