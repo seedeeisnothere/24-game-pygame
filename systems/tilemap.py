@@ -36,7 +36,6 @@ def load_tiles(sheet_path):
     return tiles
 
 def load_tilesets(data, json_path):
-    map_folder = os.path.dirname(json_path)
     tilesets = {}
     for tileset in data["tilesets"]:
         sheet_path = f"assets/tiles/{tileset["source"][:-3]}png"
