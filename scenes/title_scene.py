@@ -3,6 +3,8 @@ from settings import *
 from scenes.scene import Scene
 from systems.ui import Button
 from systems.settings_panel import SettingsPanel
+from systems.starfield import Starfield
+from systems.tween import ease_out
 
 
 class TitleScene(Scene):
@@ -12,17 +14,27 @@ class TitleScene(Scene):
         button_font = pygame.font.Font(FONT_PATH, BUTTON_FONT_SIZE)
 
         self.title_text = title_font.render("M24", False, TEXT_COLOR)
-        self.title_rect = self.title_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3))
+        self.title_rect = self.title_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 5))
 
 
         center_x = SCREEN_WIDTH // 2
-        first_y = SCREEN_HEIGHT // 2
+        first_y = 352
         step_y = BUTTON_HEIGHT + BUTTON_GAP
         self.start_button = Button("Start", (center_x, first_y), button_font)
         self.settings_button = Button("Settings", (center_x, first_y + step_y), button_font)
         self.quit_button = Button("Quit", (center_x, first_y + step_y * 2), button_font)
         self.buttons = [self.start_button, self.settings_button, self.quit_button]
         self.settings_panel = SettingsPanel(game)
+        self.planet = pygame.Surface((PLANET_RADIUS * 2, PLANET_RADIUS * 2), pygame.SRCALPHA)
+        pygame.draw.circle(self.planet, PLANET_COLOR, (PLANET_RADIUS, PLANET_RADIUS), PLANET_RADIUS)
+        for position, radius in PLANET_SPOTS:
+            pygame.draw.circle(self.planet, PLANET_SPOT_COLOR, position, radius)
+        self.planet_image = self.planet
+        self.planet_rect = self.planet.get_rect(center=PLANET_CENTER)
+        self.planet_timer = 0.0
+        avoid_rects = [self.title_rect] + [button.rect for button in self.buttons]
+        avoid_circles = [(PLANET_CENTER, PLANET_RADIUS)]
+        self.starfield = Starfield(avoid_rects, avoid_circles)
 
     def handle_events(self, events):
         for event in events:
@@ -44,10 +56,19 @@ class TitleScene(Scene):
         title_mouse_pos = (-1, -1) if self.settings_panel.is_active() else mouse_pos
         for button in self.buttons:
             button.update(title_mouse_pos)
+        self.starfield.update(dt)
+        if self.planet_timer < PLANET_INTRO_TIME:
+            self.planet_timer = min(self.planet_timer + dt, PLANET_INTRO_TIME)
+            remaining = 1 - ease_out(self.planet_timer / PLANET_INTRO_TIME, PLANET_EASE)
+            self.planet_image = pygame.transform.rotate(self.planet, PLANET_SPIN_DEGREES * remaining)
+            center = (PLANET_CENTER[0], PLANET_CENTER[1] + PLANET_START_OFFSET * remaining)
+            self.planet_rect = self.planet_image.get_rect(center=center)
         self.settings_panel.update(dt, mouse_pos)
 
     def draw(self, screen):
         screen.fill(TITLE_BG_COLOR)
+        self.starfield.draw(screen)
+        screen.blit(self.planet_image, self.planet_rect)
         screen.blit(self.title_text, self.title_rect)
         for button in self.buttons:
             button.draw(screen)

@@ -25,13 +25,15 @@ class Button:
         return False
 
     def draw(self, screen):
+        fill_color = BUTTON_FILL_COLOR
+        border_color = BUTTON_COLOR
         if self.pressed and self.hovered:
-            color = BUTTON_PRESSED_COLOR
+            fill_color = BUTTON_PRESSED_COLOR
+            border_color = BUTTON_HOVER_COLOR
         elif self.hovered:
-            color = BUTTON_HOVER_COLOR
-        else:
-            color = BUTTON_COLOR
-        pygame.draw.rect(screen, color, self.rect)
+            border_color = BUTTON_HOVER_COLOR
+        pygame.draw.rect(screen, fill_color, self.rect, border_radius=BUTTON_RADIUS)
+        pygame.draw.rect(screen, border_color, self.rect, width=BUTTON_BORDER_WIDTH, border_radius=BUTTON_RADIUS)
         screen.blit(self.label, self.label_rect)
 
 

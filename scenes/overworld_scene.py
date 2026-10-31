@@ -68,7 +68,7 @@ class OverworldScene(Scene):
         self.cam_y = max(0, min(self.cam_y, self.world_height - SCREEN_HEIGHT))
 
     def draw(self, screen):
-        screen.fill((60, 90, 120))
+        screen.fill("#3C5A78")
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
         screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
         screen.blit(self.above, (-self.cam_x, -self.cam_y))

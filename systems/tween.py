@@ -1,5 +1,5 @@
-def ease_out(t):
-    return 1 - (1 - t) ** 3
+def ease_out(t, power=3):
+    return 1 - (1 - t) ** power
 
-def ease_in(t):
-    return t ** 3
+def ease_in(t, power=3):
+    return t ** power

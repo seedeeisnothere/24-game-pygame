@@ -10,6 +10,7 @@ SCENES = {
     "overworld": OverworldScene,
 }
 
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -32,7 +33,6 @@ class Game:
             return
         self.next_scene_name = name
         self.curtain.start()
-
 
     def run(self):
         while self.running:
