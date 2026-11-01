@@ -30,7 +30,7 @@ class TitleScene(Scene):
         for position, radius in PLANET_SPOTS:
             pygame.draw.circle(self.planet, PLANET_SPOT_COLOR, position, radius)
         self.planet_image = self.planet
-        self.planet_rect = self.planet.get_rect(center=PLANET_CENTER)
+        self.planet_rect = self.planet.get_rect(center=(PLANET_CENTER[0], PLANET_CENTER[1] + PLANET_START_OFFSET))
         self.planet_timer = 0.0
         avoid_rects = [self.title_rect] + [button.rect for button in self.buttons]
         avoid_circles = [(PLANET_CENTER, PLANET_RADIUS)]
@@ -45,19 +45,24 @@ class TitleScene(Scene):
             settings_clicked = self.settings_button.handle_event(event)
             quit_clicked = self.quit_button.handle_event(event)
             if start_clicked:
+                self.game.play_sfx("select")
                 self.game.change_scene("overworld")
             elif settings_clicked:
+                self.game.play_sfx("select")
                 self.settings_panel.open()
             elif quit_clicked:
+                self.game.play_sfx("select")
                 self.game.running = False
 
     def update(self, dt):
         mouse_pos = pygame.mouse.get_pos()
-        title_mouse_pos = (-1, -1) if self.settings_panel.is_active() else mouse_pos
+        blocked = self.settings_panel.is_active() or self.game.curtain.is_busy()
+        title_mouse_pos = (-1, -1) if blocked else mouse_pos
         for button in self.buttons:
-            button.update(title_mouse_pos)
+            if button.update(title_mouse_pos):
+                self.game.play_sfx("hover")
         self.starfield.update(dt)
-        if self.planet_timer < PLANET_INTRO_TIME:
+        if not self.game.curtain.is_busy() and self.planet_timer < PLANET_INTRO_TIME:
             self.planet_timer = min(self.planet_timer + dt, PLANET_INTRO_TIME)
             remaining = 1 - ease_out(self.planet_timer / PLANET_INTRO_TIME, PLANET_EASE)
             self.planet_image = pygame.transform.rotate(self.planet, PLANET_SPIN_DEGREES * remaining)

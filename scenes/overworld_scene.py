@@ -2,6 +2,7 @@ import pygame
 from settings import *
 from systems.tilemap import *
 from entities.player import *
+from systems.settings_panel import SettingsPanel
 from scenes.scene import Scene
 
 
@@ -25,8 +26,24 @@ class OverworldScene(Scene):
         self.hitbox_offset_y = self.player_height - HITBOX_HEIGHT
         self.cam_x = 0
         self.cam_y = 0
+        self.settings_panel = SettingsPanel(game, in_game=True)
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if self.settings_panel.is_active():
+                    self.settings_panel.close()
+                else:
+                    self.settings_panel.open()
+            elif self.settings_panel.is_active():
+                self.settings_panel.handle_event(event)
+
 
     def update(self, dt):
+        self.settings_panel.update(dt, pygame.mouse.get_pos())
+        if self.settings_panel.is_active():
+            self.game.update_walk_sfx(False)
+            return
         keys = pygame.key.get_pressed()
         left  = keys[pygame.K_LEFT]  or keys[pygame.K_a]
         right = keys[pygame.K_RIGHT] or keys[pygame.K_d]
@@ -60,6 +77,7 @@ class OverworldScene(Scene):
             self.player_y = old_y
 
         self.sprite.moving = self.player_x != old_x or self.player_y != old_y
+        self.game.update_walk_sfx(self.sprite.moving)
         self.sprite.update(dt)
 
         self.cam_x = self.player_x + self.player_width // 2 - SCREEN_WIDTH // 2
@@ -72,3 +90,4 @@ class OverworldScene(Scene):
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
         screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
+        self.settings_panel.draw(screen)

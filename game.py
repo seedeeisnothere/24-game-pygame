@@ -1,4 +1,5 @@
 import pygame
+import random
 from settings import *
 from systems.transition import Curtain
 from scenes.title_scene import TitleScene
@@ -20,6 +21,11 @@ class Game:
         self.running = True
         self.sfx_volume = DEFAULT_SFX_VOLUME
         self.bgm_volume = DEFAULT_BGM_VOLUME
+        self.sounds = {
+            "hover": pygame.mixer.Sound(HOVER_SFX_PATH),
+            "select": pygame.mixer.Sound(SELECT_SFX_PATH),
+        }
+        self.walk_grass_sounds = [pygame.mixer.Sound(path) for path in WALK_GRASS_SFX_PATHS]
         self.scene = None
         self.next_scene_name = None
         self.curtain = Curtain()
@@ -27,6 +33,21 @@ class Game:
 
     def set_scene(self, name):
         self.scene = SCENES[name](self)
+
+    def play_sfx(self, name):
+        sound = self.sounds[name]
+        sound.set_volume(self.sfx_volume)
+        sound.play()
+
+    def update_walk_sfx(self, moving):
+        playing = any(sound.get_num_channels() > 0 for sound in self.walk_grass_sounds)
+        if moving and not playing:
+            sound = random.choice(self.walk_grass_sounds)
+            sound.set_volume(self.sfx_volume * WALK_GRASS_VOLUME)
+            sound.play()
+        elif not moving and playing:
+            for sound in self.walk_grass_sounds:
+                sound.stop()
 
     def change_scene(self, name):
         if self.curtain.is_busy():

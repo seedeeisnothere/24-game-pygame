@@ -1,11 +1,11 @@
 import pygame
 from settings import *
 from systems.tween import ease_out, ease_in
-from systems.ui import Button, Slider
+from systems.ui import Button, HomeButton, Slider
 
 
 class SettingsPanel:
-    def __init__(self, game):
+    def __init__(self, game, in_game=False):
         self.game = game
         self.surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.state = "hidden"
@@ -32,14 +32,25 @@ class SettingsPanel:
 
         self.sfx_slider = Slider("SFX", PANEL_MARGIN, SLIDER_FIRST_Y, game.sfx_volume, small_font)
         self.bgm_slider = Slider("BGM", PANEL_MARGIN, SLIDER_FIRST_Y + SLIDER_SPACING, game.bgm_volume, small_font)
-        back_center = (PANEL_MARGIN + BUTTON_WIDTH // 2, SCREEN_HEIGHT - PANEL_MARGIN - BUTTON_HEIGHT // 2)
-        self.back_button = Button("Back", back_center, big_font)
+        row_y = SCREEN_HEIGHT - PANEL_MARGIN - BUTTON_HEIGHT // 2
+        back_width = BUTTON_WIDTH
+        self.title_button = None
+        if in_game:
+            back_width = BUTTON_WIDTH - BUTTON_GAP - HOME_BUTTON_RADIUS * 2
+            home_center = (PANEL_MARGIN + BUTTON_WIDTH - HOME_BUTTON_RADIUS, row_y)
+            self.title_button = HomeButton(home_center)
+        back_center = (PANEL_MARGIN + back_width // 2, row_y)
+        self.back_button = Button("Back", back_center, big_font, back_width)
+        self.buttons = [self.back_button]
+        if self.title_button is not None:
+            self.buttons.append(self.title_button)
 
     def open(self):
         if self.state == "hidden":
             self.state = "sliding_in"
             self.timer = 0.0
-            self.back_button.hovered = False
+            for button in self.buttons:
+                button.hovered = False
 
     def close(self):
         if self.state == "shown":
@@ -52,12 +63,18 @@ class SettingsPanel:
     def handle_event(self, event):
         if self.state != "shown":
             return
-        self.sfx_slider.handle_event(event)
+        sfx_released = self.sfx_slider.handle_event(event)
         self.bgm_slider.handle_event(event)
         self.game.sfx_volume = self.sfx_slider.value
         self.game.bgm_volume = self.bgm_slider.value
+        if sfx_released:
+            self.game.play_sfx("select")
         if self.back_button.handle_event(event):
+            self.game.play_sfx("select")
             self.close()
+        if self.title_button is not None and self.title_button.handle_event(event):
+            self.game.play_sfx("select")
+            self.game.change_scene("title")
 
     def update(self, dt, mouse_pos):
         if self.state == "sliding_in":
@@ -67,7 +84,10 @@ class SettingsPanel:
             if progress >= 1:
                 self.state = "shown"
         elif self.state == "shown":
-            self.back_button.update(mouse_pos)
+            panel_mouse_pos = (-1, -1) if self.game.curtain.is_busy() else mouse_pos
+            for button in self.buttons:
+                if button.update(panel_mouse_pos):
+                    self.game.play_sfx("hover")
         elif self.state == "sliding_out":
             self.timer += dt
             progress = min(self.timer / PANEL_SLIDE_TIME, 1)
@@ -86,5 +106,6 @@ class SettingsPanel:
         self.bgm_slider.draw(self.surface)
         for text, rect in self.credits:
             self.surface.blit(text, rect)
-        self.back_button.draw(self.surface)
+        for button in self.buttons:
+            button.draw(self.surface)
         screen.blit(self.surface, (int(self.x), 0))
