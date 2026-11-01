@@ -1,6 +1,15 @@
 import pygame
+import random
 from settings import *
+from systems.transition import Curtain
+from scenes.title_scene import TitleScene
 from scenes.overworld_scene import OverworldScene
+
+
+SCENES = {
+    "title": TitleScene,
+    "overworld": OverworldScene,
+}
 
 
 class Game:
@@ -10,19 +19,61 @@ class Game:
         self.screen_rect = self.screen.get_rect()
         self.clock = pygame.time.Clock()
         self.running = True
-        self.scene = OverworldScene(self)
+        self.sfx_volume = DEFAULT_SFX_VOLUME
+        self.bgm_volume = DEFAULT_BGM_VOLUME
+        self.sounds = {
+            "hover": pygame.mixer.Sound(HOVER_SFX_PATH),
+            "select": pygame.mixer.Sound(SELECT_SFX_PATH),
+        }
+        self.walk_grass_sounds = [pygame.mixer.Sound(path) for path in WALK_GRASS_SFX_PATHS]
+        self.scene = None
+        self.next_scene_name = None
+        self.curtain = Curtain()
+        self.set_scene("title")
+
+    def set_scene(self, name):
+        self.scene = SCENES[name](self)
+
+    def play_sfx(self, name):
+        sound = self.sounds[name]
+        sound.set_volume(self.sfx_volume)
+        sound.play()
+
+    def update_walk_sfx(self, moving):
+        playing = any(sound.get_num_channels() > 0 for sound in self.walk_grass_sounds)
+        if moving and not playing:
+            sound = random.choice(self.walk_grass_sounds)
+            sound.set_volume(self.sfx_volume * WALK_GRASS_VOLUME)
+            sound.play()
+        elif not moving and playing:
+            for sound in self.walk_grass_sounds:
+                sound.stop()
+
+    def change_scene(self, target):
+        if self.curtain.is_busy():
+            return
+        self.next_scene = target
+        self.curtain.start()
 
     def run(self):
         while self.running:
-            dt = self.clock.tick(FPS) / 1000
+            dt = min(self.clock.tick(FPS) / 1000, MAX_DT)
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
-            self.scene.handle_events(events)
-            self.scene.update(dt)
+            if not self.curtain.is_busy():
+                self.scene.handle_events(events)
+            if self.curtain.state in ("idle", "holding", "opening"):
+                self.scene.update(dt)                 # ตอนม่านกำลังปิด ไม่อัปเดต = ภาพค้าง
+            self.curtain.update(dt)
             self.scene.draw(self.screen)
+            self.curtain.draw(self.screen)
             pygame.display.flip()
+            if self.curtain.state == "covered":
+                target = self.next_scene
+                self.scene = SCENES[target](self) if isinstance(target, str) else target()
+                self.curtain.finish_loading()
         pygame.quit()
 
 

@@ -2,7 +2,9 @@ import pygame
 from settings import *
 from systems.tilemap import *
 from entities.player import *
+from entities.enemy import Enemy, EnemyEncounter
 from scenes.scene import Scene
+from scenes.battle_scene import BattleScene
 
 
 class OverworldScene(Scene):
@@ -25,6 +27,24 @@ class OverworldScene(Scene):
         self.hitbox_offset_y = self.player_height - HITBOX_HEIGHT
         self.cam_x = 0
         self.cam_y = 0
+
+        # ศัตรูตัวอย่าง: ตอนนี้ยืมสไปรต์ผู้เล่นไปก่อน เปลี่ยน path เมื่อมีรูปศัตรูจริง
+        # และควรวางตำแหน่งให้อยู่บนพื้นที่เดินได้ (ไม่ทับ collision)
+        self.encounter = EnemyEncounter([
+            Enemy(self.player_x + 300, self.player_y,
+                  "assets/sprites/player/idle.png", walk_paths,
+                  walk_dir="assets/sprites/player/walk"),
+        ])
+
+    def handle_events(self, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
+                enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
+                if enemy:
+                    self.start_battle(enemy)
+
+    def start_battle(self, enemy):
+        self.game.change_scene(lambda: BattleScene(self.game, enemy, self))
 
     def update(self, dt):
         keys = pygame.key.get_pressed()
@@ -59,8 +79,15 @@ class OverworldScene(Scene):
         if touches_solid(self.hitbox, self.solid):
             self.player_y = old_y
 
+        # รีเซ็ต hitbox ให้ตรงตำแหน่งสุดท้ายจริง (กรณีโดนถอยกลับจาก collision)
+        self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
+
         self.sprite.moving = self.player_x != old_x or self.player_y != old_y
         self.sprite.update(dt)
+
+        enemy = self.encounter.update(dt, self.hitbox, self.solid)
+        if enemy:
+            self.start_battle(enemy)
 
         self.cam_x = self.player_x + self.player_width // 2 - SCREEN_WIDTH // 2
         self.cam_y = self.player_y + self.player_height // 2 - SCREEN_HEIGHT // 2
@@ -70,5 +97,6 @@ class OverworldScene(Scene):
     def draw(self, screen):
         screen.fill((60, 90, 120))
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
+        self.encounter.draw(screen, self.cam_x, self.cam_y)
         screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
