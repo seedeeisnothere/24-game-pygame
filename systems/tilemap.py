@@ -4,8 +4,17 @@ import pygame
 
 TILE = 16
 SCALE = 4
+FLIP_H = 0x80000000
+FLIP_V = 0x40000000
+FLIP_D = 0x20000000
 FLIP_MASK = 0x1FFFFFFF
 
+def apply_flips(tile, flags):
+    if flags & FLIP_D:
+        tile = pygame.transform.flip(pygame.transform.rotate(tile, 90), False, True)
+    if flags & FLIP_H or flags & FLIP_V:
+        tile = pygame.transform.flip(tile, bool(flags & FLIP_H), bool(flags & FLIP_V))
+    return tile
 
 def index_to_cell(index, width):
     row = index // width
@@ -54,6 +63,7 @@ def load_map(json_path):
     size = (map_width * TILE * SCALE, map_height * TILE * SCALE)
     below = pygame.Surface(size, pygame.SRCALPHA)
     above = pygame.Surface(size, pygame.SRCALPHA)
+    flip_cache = {}
 
     for layer in data["layers"]:
         if layer["type"] != "tilelayer":
@@ -66,14 +76,21 @@ def load_map(json_path):
             continue
         target = above if name.startswith("above") else below
 
-        for index, gid in enumerate(layer["data"]):
-            gid = gid & FLIP_MASK
+        for index, raw_gid in enumerate(layer["data"]):
+            gid = raw_gid & FLIP_MASK
             if gid == 0:
                 continue
+            flags = raw_gid & ~FLIP_MASK
             firstgid = find_firstgid(gid, firstgids)
             local = gid - firstgid
             row, col = index_to_cell(index, map_width)
-            target.blit(tilesets[firstgid][local], (col * TILE * SCALE, row * TILE * SCALE))
+            tile = tilesets[firstgid][local]
+            if flags:
+                key = (firstgid, local, flags)
+                if key not in flip_cache:
+                    flip_cache[key] = apply_flips(tile, flags)
+                tile = flip_cache[key]
+            target.blit(tile, (col * TILE * SCALE, row * TILE * SCALE))
 
     return below, above
 

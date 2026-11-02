@@ -1,10 +1,16 @@
+import os
 import pygame
 
+
 class AnimatedSprite:
-    def __init__(self, idle_path, walk_paths, frame_duration_ms=75):
-        # Load once, with transparency and fast drawing
-        self.idle_right = pygame.transform.scale(pygame.image.load(idle_path).convert_alpha(), (64, 87))
-        self.walk_right = [pygame.transform.scale(pygame.image.load(f"assets/sprites/player/walk/{p}").convert_alpha(), (64, 87)) for p in walk_paths]
+    def __init__(self, idle_path, walk_paths, frame_duration_ms=75,
+                 size=(64, 87), walk_dir="assets/sprites/player/walk"):
+        def load(path):
+            image = pygame.image.load(path).convert_alpha()
+            return pygame.transform.scale(image, size)
+
+        self.idle_right = load(idle_path)
+        self.walk_right = [load(os.path.join(walk_dir, p)) for p in walk_paths]
 
         # Mirrored copies, built once so we never flip during the game loop
         self.idle_left = pygame.transform.flip(self.idle_right, True, False)
