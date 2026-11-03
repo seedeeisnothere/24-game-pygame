@@ -3,6 +3,7 @@ from settings import *
 from systems.tilemap import *
 from entities.player import *
 from entities.enemy import Enemy, EnemyEncounter
+from systems.settings_panel import SettingsPanel
 from scenes.scene import Scene
 from scenes.battle_scene import BattleScene
 
@@ -27,6 +28,7 @@ class OverworldScene(Scene):
         self.hitbox_offset_y = self.player_height - HITBOX_HEIGHT
         self.cam_x = 0
         self.cam_y = 0
+        self.settings_panel = SettingsPanel(game, in_game=True)
 
         # ศัตรูตัวอย่าง: ตอนนี้ยืมสไปรต์ผู้เล่นไปก่อน เปลี่ยน path เมื่อมีรูปศัตรูจริง
         # และควรวางตำแหน่งให้อยู่บนพื้นที่เดินได้ (ไม่ทับ collision)
@@ -38,7 +40,14 @@ class OverworldScene(Scene):
 
     def handle_events(self, events):
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if self.settings_panel.is_active():
+                    self.settings_panel.close()
+                else:
+                    self.settings_panel.open()
+            elif self.settings_panel.is_active():
+                self.settings_panel.handle_event(event)
+            elif event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
                 enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
                 if enemy:
                     self.start_battle(enemy)
@@ -47,6 +56,9 @@ class OverworldScene(Scene):
         self.game.change_scene(lambda: BattleScene(self.game, enemy, self))
 
     def update(self, dt):
+        self.settings_panel.update(dt, pygame.mouse.get_pos())
+        if self.settings_panel.is_active():
+            return
         keys = pygame.key.get_pressed()
         left  = keys[pygame.K_LEFT]  or keys[pygame.K_a]
         right = keys[pygame.K_RIGHT] or keys[pygame.K_d]
@@ -83,6 +95,7 @@ class OverworldScene(Scene):
         self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
 
         self.sprite.moving = self.player_x != old_x or self.player_y != old_y
+        self.game.update_walk_sfx(self.sprite.moving)
         self.sprite.update(dt)
 
         enemy = self.encounter.update(dt, self.hitbox, self.solid)
@@ -95,8 +108,9 @@ class OverworldScene(Scene):
         self.cam_y = max(0, min(self.cam_y, self.world_height - SCREEN_HEIGHT))
 
     def draw(self, screen):
-        screen.fill((60, 90, 120))
+        screen.fill("#3C5A78")
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
         self.encounter.draw(screen, self.cam_x, self.cam_y)
         screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
+        self.settings_panel.draw(screen)

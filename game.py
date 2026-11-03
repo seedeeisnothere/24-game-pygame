@@ -15,7 +15,7 @@ SCENES = {
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SCALED, vsync=1)
         self.screen_rect = self.screen.get_rect()
         self.clock = pygame.time.Clock()
         self.running = True
@@ -26,8 +26,9 @@ class Game:
             "select": pygame.mixer.Sound(SELECT_SFX_PATH),
         }
         self.walk_grass_sounds = [pygame.mixer.Sound(path) for path in WALK_GRASS_SFX_PATHS]
+        self.next_walk_sfx_time = 0
         self.scene = None
-        self.next_scene_name = None
+        self.next_scene = None
         self.curtain = Curtain()
         self.set_scene("title")
 
@@ -40,14 +41,12 @@ class Game:
         sound.play()
 
     def update_walk_sfx(self, moving):
-        playing = any(sound.get_num_channels() > 0 for sound in self.walk_grass_sounds)
-        if moving and not playing:
+        now = pygame.time.get_ticks()
+        if moving and now >= self.next_walk_sfx_time:
             sound = random.choice(self.walk_grass_sounds)
             sound.set_volume(self.sfx_volume * WALK_GRASS_VOLUME)
             sound.play()
-        elif not moving and playing:
-            for sound in self.walk_grass_sounds:
-                sound.stop()
+            self.next_walk_sfx_time = now + round(sound.get_length() * 1000) + WALK_GRASS_DELAY_MS
 
     def change_scene(self, target):
         if self.curtain.is_busy():

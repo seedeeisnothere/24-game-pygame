@@ -6,39 +6,35 @@ from entities.player import AnimatedSprite
 
 
 class Enemy:
-    """วนสถานะ: patrol -> alert -> chase -> return -> patrol (ชนผู้เล่นตอน chase = เริ่มสู้)"""
-
     def __init__(self, x, y, idle_path, walk_paths, walk_dir, size=(64, 87),
                  patrol_range=150, speed=2, chase_speed=3,
                  detect_radius=200, lose_radius=400, alert_time=0.5, name="Enemy"):
         self.sprite = AnimatedSprite(idle_path, walk_paths, size=size, walk_dir=walk_dir)
-        self.rect = pygame.Rect(x, y, *size)                          # กรอบรูป (ใช้วาด)
-        self.hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)  # กรอบที่เท้า (ใช้ชน)
+        self.rect = pygame.Rect(x, y, *size)
+        self.hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)
         self.hitbox.midbottom = self.rect.midbottom
 
         self.name = name
         self.spawn = (x, y)
         self.patrol_range = patrol_range
         self.speed = speed
-        self.chase_speed = chase_speed        # ช้ากว่าผู้เล่น (4) จึงวิ่งหนีทัน
+        self.chase_speed = chase_speed
         self.detect_radius = detect_radius
-        self.lose_radius = lose_radius        # ผู้เล่นหนีไกลเกินนี้ ศัตรูเลิกไล่
+        self.lose_radius = lose_radius
         self.alert_time = alert_time
 
         self.state = "patrol"
         self.direction = 1
         self.alert_timer = 0.0
         self.defeated = False
-        self.stunned = 0.0                    # ช่วงที่ศัตรูไม่ตรวจจับผู้เล่น (ใช้หลังผู้เล่นหนีจากการสู้)
+        self.stunned = 0.0
 
-        # เรนเดอร์ข้อความไว้ล่วงหน้า ตอนวาดแค่แปะภาพ
         name_font = pygame.font.Font(FONT_PATH, 24)
         self.name_label = name_font.render(name, False, "#FFFFFF")
         self.name_shadow = name_font.render(name, False, "#000000")
         self.alert_mark = pygame.font.Font(None, 48).render("!", True, (255, 60, 60))
 
     def _move(self, dx, dy, solid):
-        """ขยับทีละแกน ถ้าชนกำแพงให้ถอยกลับ คืน True ถ้าขยับได้จริง"""
         moved = False
         for step_x, step_y in ((dx, 0), (0, dy)):
             old = self.rect.topleft
@@ -52,7 +48,6 @@ class Enemy:
         return moved
 
     def _walk_toward(self, tx, ty, speed, solid):
-        """เดินไปตามทิศ (tx, ty) ด้วยความเร็ว speed (ปรับทิศให้ยาว 1 ก่อน จะเดินเฉียงไม่เร็วขึ้น)"""
         length = math.hypot(tx, ty)
         if length == 0:
             return False
@@ -70,12 +65,10 @@ class Enemy:
         self.state = "patrol"
 
     def stun(self, seconds=2.0):
-        """ใช้หลังผู้เล่นหนีจากการสู้: ศัตรูเดินกลับจุดเริ่มและไม่ตรวจจับผู้เล่นชั่วครู่"""
         self.state = "return"
         self.stunned = seconds
 
     def update(self, dt, player_rect, solid):
-        """คืน True เมื่อศัตรูชนผู้เล่น (ถึงเวลาต่อสู้)"""
         if self.defeated:
             return False
         self.stunned = max(0.0, self.stunned - dt)
@@ -94,7 +87,7 @@ class Enemy:
                 self._start_alert()
 
         elif self.state == "alert":
-            self.sprite.facing_right = dx >= 0              # หันหน้าหาผู้เล่น
+            self.sprite.facing_right = dx >= 0
             self.alert_timer += dt
             if dist > self.lose_radius:
                 self.state = "return"
@@ -113,9 +106,9 @@ class Enemy:
             ty = self.spawn[1] - self.rect.y
             arrived = math.hypot(tx, ty) <= self.speed
             if arrived or not self._walk_toward(tx, ty, self.speed, solid):
-                self._respawn()                             # ถึงแล้ว หรือติดกำแพง -> วางที่จุดเริ่ม
+                self._respawn()
             elif self.stunned <= 0 and dist <= self.detect_radius:
-                self._start_alert()                         # เห็นผู้เล่นระหว่างทางกลับ
+                self._start_alert()
 
         self.sprite.update(dt)
         return False
@@ -123,7 +116,7 @@ class Enemy:
     def draw(self, screen, cam_x, cam_y):
         if self.defeated:
             return
-        x = self.rect.x - cam_x                             # พิกัดโลก -> พิกัดจอ
+        x = self.rect.x - cam_x
         y = self.rect.y - cam_y
         screen.blit(self.sprite.get_image(), (x, y))
 
@@ -143,14 +136,12 @@ class EnemyEncounter:
         self.enemies = enemies
 
     def update(self, dt, player_rect, solid):
-        """คืนศัตรูที่ต้องสู้ด้วย (ถ้ามี) ไม่งั้นคืน None"""
         for enemy in self.enemies:
             if enemy.update(dt, player_rect, solid):
                 return enemy
         return None
 
     def enemy_in_front(self, player_rect, facing_right, reach=20):
-        """ใช้ตอนกดปุ่มท้าสู้: ขยายกรอบผู้เล่นไปด้านที่หันอยู่แล้วเช็กว่าชนศัตรูไหม"""
         probe = player_rect.copy()
         probe.width += reach
         if not facing_right:
