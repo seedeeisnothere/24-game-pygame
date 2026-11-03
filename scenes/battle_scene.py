@@ -1,21 +1,18 @@
 import math
-import random
 import string
 import pygame
 from settings import *
 from scenes.scene import Scene
 from logic.game24 import Game24, OPS
 from logic.puzzle_bank import load_puzzles, random_puzzle
+from logic.dodge import DodgeEvent
 
 PLAYER_MAX_HP = 5
 ENEMY_MAX_HP = 5          # ถ้า Enemy มี .hp ของตัวเอง จะใช้ค่านั้นแทน
-COMBO_TIME = 10.0         # เวลา (วินาที) ที่ต้องแก้ข้อถัดไปให้ทัน ไม่งั้น combo หาย
+COMBO_TIME = 15.0         # เวลา (วินาที) ที่ต้องแก้ข้อถัดไปให้ทัน ไม่งั้น combo หาย
 COMBO_MAX = 5
-ATTACK_WAIT = (1.0, 3.0)  # ศัตรูเริ่มโจมตีรอบใหม่ทุก ๆ กี่วินาที (สุ่มในช่วงนี้)
-WAVE_SIZES = (1, 1, 2, 3) # แต่ละรอบยิงกี่ลูก (สุ่มจากรายการนี้ ใส่เลขซ้ำ = มีโอกาสออกมากขึ้น, มากสุด 3)
-ATTACK_GAP = (0.6, 1.1)   # ช่วงห่างระหว่างลูกในรอบเดียวกัน (วินาที)
-DODGE_TIME = 1.8          # เวลานับถอยหลังให้กดหลบ "ต่อ 1 ลูก"
-DODGE_KEYS = "ZWFXC"      # ตัวอักษรที่ใช้หลบ (ลูกที่ลอยอยู่พร้อมกันจะไม่ซ้ำตัวอักษร)
+COMBO_WARNING_TIME = 3.0
+COMBO_BLINK_TIME = 0.25
 LANES_Y = (400, 470, 540) # ความสูงของแต่ละเลนที่ลูกโจมตีพุ่งผ่าน (= จำนวนลูกสูงสุดพร้อมกัน)
 RESULT_TIME = 1.5         # ค้างหน้า WIN / DEFEATED ก่อนกลับ overworld
 PANEL_X = 880             # เส้นแบ่งฝั่งซ้าย (ต่อสู้) / ฝั่งขวา (โจทย์ 24)
@@ -69,9 +66,7 @@ class BattleScene(Scene):
         self.combo = 0
         self.combo_timer = 0.0
 
-        self.attacks = []
-        self.wave_delays = []
-        self.attack_timer = random.uniform(*ATTACK_WAIT)
+        self.dodge = DodgeEvent(len(LANES_Y))
 
         self.message = ""
         self.message_color = TEXT_COLOR
@@ -127,38 +122,23 @@ class BattleScene(Scene):
             self.finish("win")
 
     def press_letter(self, scancode):
-        letter = LETTER_BY_SCANCODE.get(scancode)
-        if letter is None or not self.attacks:
-            return
-        for attack in self.attacks:
-            if attack["key"] == letter:
-                self.attacks.remove(attack)
+        self.dodge.press(LETTER_BY_SCANCODE.get(scancode))
+        self.apply_dodge_results()
+
+    def apply_dodge_results(self):
+        for result in self.dodge.consume_results():
+            if self.result:
+                break
+            if result == "dodged":
                 self.show("Dodge!", GOOD_COLOR)
-                return
-        self.take_hit()
+            else:
+                self.take_hit()
 
     def take_hit(self):
         self.player_hp -= 1
         self.show("Hit!", BAD_COLOR)
         if self.player_hp <= 0:
             self.finish("lose")
-
-    def start_wave(self):
-        delays, t = [], 0.0
-        for _ in range(random.choice(WAVE_SIZES)):
-            delays.append(t)
-            t += random.uniform(*ATTACK_GAP)
-        self.wave_delays = delays
-        self.attack_timer = random.uniform(*ATTACK_WAIT)
-
-    def spawn_attack(self):
-        used_keys = {a["key"] for a in self.attacks}
-        used_lanes = {a["lane"] for a in self.attacks}
-        keys = [k for k in DODGE_KEYS if k not in used_keys]
-        lanes = [i for i in range(len(LANES_Y)) if i not in used_lanes]
-        if keys and lanes:
-            self.attacks.append({"key": random.choice(keys), "left": DODGE_TIME,
-                                 "lane": random.choice(lanes)})
 
     def show(self, text, color):
         self.message = text
@@ -167,8 +147,7 @@ class BattleScene(Scene):
 
     def finish(self, result):
         self.result = result
-        self.attacks = []
-        self.wave_delays = []
+        self.dodge.clear()
         if result == "win":
             self.enemy.defeated = True
             self.result_timer = RESULT_TIME
@@ -200,23 +179,8 @@ class BattleScene(Scene):
 
         self.message_timer = max(0.0, self.message_timer - dt)
 
-        if not self.attacks and not self.wave_delays:
-            self.attack_timer -= dt
-            if self.attack_timer <= 0:
-                self.start_wave()
-
-        self.wave_delays = [d - dt for d in self.wave_delays]
-        while self.wave_delays and self.wave_delays[0] <= 0:
-            self.wave_delays.pop(0)
-            self.spawn_attack()
-
-        for attack in list(self.attacks):
-            attack["left"] -= dt
-            if attack["left"] <= 0:
-                self.attacks.remove(attack)
-                self.take_hit()
-                if self.result:
-                    break
+        self.dodge.update(dt)
+        self.apply_dodge_results()
 
     def text(self, screen, font, string_, color, **anchor):
         surface = font.render(string_, False, color)
@@ -246,7 +210,11 @@ class BattleScene(Scene):
         pygame.draw.rect(screen, SLIDER_TRACK_COLOR, bar)
         fill = bar.copy()
         fill.width = int(bar.width * self.combo_timer / COMBO_TIME)
-        pygame.draw.rect(screen, SLIDER_FILL_COLOR, fill)
+        fill_color = SLIDER_FILL_COLOR
+        if self.combo > 0 and self.combo_timer <= COMBO_WARNING_TIME:
+            if int(self.combo_timer / COMBO_BLINK_TIME) % 2 == 0:
+                fill_color = BAD_COLOR
+        pygame.draw.rect(screen, fill_color, fill)
         pygame.draw.rect(screen, BUTTON_COLOR, bar, 3)
 
         # ผู้เล่น / ศัตรู
@@ -257,7 +225,7 @@ class BattleScene(Scene):
         self.text(screen, self.small_font, "Player", TEXT_COLOR, midtop=(self.player_pos[0] + 96, 610))
         self.text(screen, self.small_font, self.enemy.name, TEXT_COLOR, midtop=(self.enemy_pos[0] + 96, 610))
 
-        for attack in self.attacks:
+        for attack in self.dodge.attacks:
             lane = attack["lane"]
             progress = 1 - attack["left"] / DODGE_TIME
             start_x = self.enemy_pos[0]
