@@ -6,6 +6,8 @@ from entities.enemy import Enemy, EnemyEncounter
 from systems.settings_panel import SettingsPanel
 from scenes.scene import Scene
 from scenes.battle_scene import BattleScene
+from entities.npc import NPC
+from systems.dialouge import DialogueSystem
 
 
 class OverworldScene(Scene):
@@ -38,7 +40,18 @@ class OverworldScene(Scene):
                   walk_dir="assets/sprites/player/walk"),
         ])
 
+
+        self.dialogue = DialogueSystem("data/dialouge.json", (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.npcs = [
+            NPC("ผู้เฒ่า", 600, 500, "assets/sprites/npc/elder.png", "npc_elder_01"),
+        ]
+        self.nearby_npc = None
+
     def handle_events(self, events):
+        if self.dialogue.active:
+            self.dialogue.handle_events(events)
+            return
+
         for event in events:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 if self.settings_panel.is_active():
@@ -56,6 +69,11 @@ class OverworldScene(Scene):
         self.game.change_scene(lambda: BattleScene(self.game, enemy, self))
 
     def update(self, dt):
+        if self.dialogue.active:
+            self.sprite.moving = False
+            self.sprite.update(dt)
+            return
+        
         self.settings_panel.update(dt, pygame.mouse.get_pos())
         if self.settings_panel.is_active():
             return
@@ -107,10 +125,32 @@ class OverworldScene(Scene):
         self.cam_x = max(0, min(self.cam_x, self.world_width - SCREEN_WIDTH))
         self.cam_y = max(0, min(self.cam_y, self.world_height - SCREEN_HEIGHT))
 
+        self.nearby_npc = None
+        for npc in self.npcs:
+            if npc.can_interact(self.hitbox):
+                self.nearby_npc = npc
+                break
+
     def draw(self, screen):
-        screen.fill("#3C5A78")
+        screen.fill((60, 90, 120))
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
-        self.encounter.draw(screen, self.cam_x, self.cam_y)
-        screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
+
+        # เรียงตามเท้า: ใครอยู่ต่ำกว่าบนจอ วาดทีหลัง
+        drawables = [(npc.rect.bottom, npc) for npc in self.npcs]
+        drawables.append((self.player_y + self.player_height, None))
+        drawables.sort(key=lambda d: d[0])
+        for _, obj in drawables:
+            if obj is None:
+                screen.blit(self.sprite.get_image(),
+                            (self.player_x - self.cam_x, self.player_y - self.cam_y))
+            else:
+                obj.draw(screen, self.cam_x, self.cam_y)
+
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
-        self.settings_panel.draw(screen)
+
+        # ป้าย "กด E"
+        if self.nearby_npc and not self.dialogue.active:
+            # วาดเหนือหัว NPC (ใช้ฟอนต์ที่รองรับไทยเหมือนกัน)
+            pass  # เติมทีหลังได้
+
+        self.dialogue.draw(screen)
