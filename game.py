@@ -4,6 +4,7 @@ from settings import *
 from systems.transition import Curtain
 from scenes.title_scene import TitleScene
 from scenes.overworld_scene import OverworldScene
+from systems.game_state import GameState
 
 
 SCENES = {
@@ -30,6 +31,7 @@ class Game:
         self.scene = None
         self.next_scene = None
         self.curtain = Curtain()
+        self.state = GameState()
         self.set_scene("title")
 
     def set_scene(self, name):

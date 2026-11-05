@@ -6,6 +6,8 @@ from entities.enemy import Enemy, EnemyEncounter
 from systems.settings_panel import SettingsPanel
 from scenes.scene import Scene
 from scenes.battle_scene import BattleScene
+from systems.status_menu import StatusMenu
+from systems.hud import MenuHint
 
 
 class OverworldScene(Scene):
@@ -29,35 +31,35 @@ class OverworldScene(Scene):
         self.cam_x = 0
         self.cam_y = 0
         self.settings_panel = SettingsPanel(game, in_game=True)
+        self.menu = StatusMenu(game)
 
-        # ศัตรูตัวอย่าง: ตอนนี้ยืมสไปรต์ผู้เล่นไปก่อน เปลี่ยน path เมื่อมีรูปศัตรูจริง
-        # และควรวางตำแหน่งให้อยู่บนพื้นที่เดินได้ (ไม่ทับ collision)
         self.encounter = EnemyEncounter([
             Enemy(self.player_x + 300, self.player_y,
                   "assets/sprites/player/idle.png", walk_paths,
                   walk_dir="assets/sprites/player/walk"),
         ])
+        self.menu_hint = MenuHint()
 
     def handle_events(self, events):
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                if self.settings_panel.is_active():
-                    self.settings_panel.close()
-                else:
-                    self.settings_panel.open()
-            elif self.settings_panel.is_active():
-                self.settings_panel.handle_event(event)
-            elif event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
-                enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
-                if enemy:
-                    self.start_battle(enemy)
+            if self.menu.is_open:
+                self.menu.handle_event(event)
+                continue
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.menu.open()
+                    self.game.update_walk_sfx(False)
+                elif event.key == pygame.K_e:
+                    enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
+                    if enemy:
+                        self.start_battle(enemy)
 
     def start_battle(self, enemy):
         self.game.change_scene(lambda: BattleScene(self.game, enemy, self))
 
     def update(self, dt):
-        self.settings_panel.update(dt, pygame.mouse.get_pos())
-        if self.settings_panel.is_active():
+        if self.menu.is_open:        # เมนูเปิดอยู่ = เกมหยุด
+            self.menu.update(dt)
             return
         keys = pygame.key.get_pressed()
         left  = keys[pygame.K_LEFT]  or keys[pygame.K_a]
@@ -113,4 +115,7 @@ class OverworldScene(Scene):
         self.encounter.draw(screen, self.cam_x, self.cam_y)
         screen.blit(self.sprite.get_image(), (self.player_x - self.cam_x, self.player_y - self.cam_y))
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
+        if not self.menu.is_open:
+            self.menu_hint.draw(screen)
         self.settings_panel.draw(screen)
+        self.menu.draw(screen)

@@ -1,30 +1,25 @@
 import math
+import random
 import string
 import pygame
 from settings import *
 from scenes.scene import Scene
 from logic.game24 import Game24, OPS
 from logic.puzzle_bank import load_puzzles, random_puzzle
-from logic.dodge import DodgeEvent
 
-PLAYER_MAX_HP = 5
-ENEMY_MAX_HP = 5          # ถ้า Enemy มี .hp ของตัวเอง จะใช้ค่านั้นแทน
-COMBO_TIME = 15.0         # เวลา (วินาที) ที่ต้องแก้ข้อถัดไปให้ทัน ไม่งั้น combo หาย
+COMBO_TIME = 10.0
 COMBO_MAX = 5
-COMBO_WARNING_TIME = 3.0
-COMBO_BLINK_TIME = 0.25
-LANES_Y = (400, 470, 540) # ความสูงของแต่ละเลนที่ลูกโจมตีพุ่งผ่าน (= จำนวนลูกสูงสุดพร้อมกัน)
-RESULT_TIME = 1.5         # ค้างหน้า WIN / DEFEATED ก่อนกลับ overworld
-PANEL_X = 880             # เส้นแบ่งฝั่งซ้าย (ต่อสู้) / ฝั่งขวา (โจทย์ 24)
+LANES_Y = (400, 470, 540)
+RESULT_TIME = 1.5
+PANEL_X = 880
 
-# ตัวอักษรบนปุ่มเครื่องหมาย (ฟอนต์อาจไม่มีตัว × ÷ จึงใช้ x กับ / ไปก่อน)
 OP_LABELS = {"+": "+", "-": "-", "*": "x", "/": "/"}
-
 
 LETTER_BY_SCANCODE = {getattr(pygame, f"KSCAN_{c}"): c for c in string.ascii_uppercase}
 
 GOOD_COLOR = "#58B368"
 BAD_COLOR = "#E0524A"
+FAILED_COLOR = "#5A6480"
 
 
 def format_value(value):
@@ -34,9 +29,6 @@ def format_value(value):
 
 
 class BattleScene(Scene):
-    """ฉากต่อสู้: แก้เกม 24 เพื่อโจมตี / กดตัวอักษรเพื่อหลบการโจมตีของศัตรู
-    Esc = หนี (ไว้ทดสอบ)"""
-
     def __init__(self, game, enemy, overworld):
         super().__init__(game)
         self.enemy = enemy
@@ -59,14 +51,25 @@ class BattleScene(Scene):
         self.numbers = random_puzzle(self.puzzles)
         self.puzzle = Game24(self.numbers)
 
-        self.player_hp = PLAYER_MAX_HP
-        self.enemy_max_hp = getattr(enemy, "hp", ENEMY_MAX_HP)
+        self.player_max_hp = game.state.max_hp
+        self.player_hp = self.player_max_hp
+        battle = enemy.battle
+        self.attack_wait = tuple(battle["attack_wait"])
+        self.wave_sizes = battle["wave_sizes"]
+        self.attack_gap = tuple(battle["attack_gap"])
+        self.dodge_time = battle["dodge_time"]
+        self.dodge_keys = battle["dodge_keys"]
+        if max(self.wave_sizes) > len(LANES_Y) or len(self.dodge_keys) < max(self.wave_sizes):
+            raise ValueError(f"{enemy.name}: wave_sizes must be <= {len(LANES_Y)} and dodge_keys must have at least as many letters")
+        self.enemy_max_hp = enemy.hp
         self.enemy_hp = self.enemy_max_hp
 
         self.combo = 0
         self.combo_timer = 0.0
 
-        self.dodge = DodgeEvent(len(LANES_Y))
+        self.attacks = []
+        self.wave_delays = []
+        self.attack_timer = random.uniform(*self.attack_wait)
 
         self.message = ""
         self.message_color = TEXT_COLOR
@@ -76,7 +79,6 @@ class BattleScene(Scene):
         self.result_timer = 0.0
         self.leaving = False
 
-    # ---------- ควบคุม ----------
     def handle_events(self, events):
         for event in events:
             if self.result:
@@ -113,7 +115,7 @@ class BattleScene(Scene):
     def hit_enemy(self):
         self.combo = min(self.combo + 1, COMBO_MAX)
         self.combo_timer = COMBO_TIME
-        damage = self.combo
+        damage = self.combo + self.game.state.damage_bonus
         self.enemy_hp -= damage
         self.show(f"-{damage}", GOOD_COLOR)
         self.numbers = random_puzzle(self.puzzles, last=self.numbers)
@@ -122,23 +124,42 @@ class BattleScene(Scene):
             self.finish("win")
 
     def press_letter(self, scancode):
-        self.dodge.press(LETTER_BY_SCANCODE.get(scancode))
-        self.apply_dodge_results()
-
-    def apply_dodge_results(self):
-        for result in self.dodge.consume_results():
-            if self.result:
-                break
-            if result == "dodged":
+        letter = LETTER_BY_SCANCODE.get(scancode)
+        live = [a for a in self.attacks if not a["failed"]]
+        if letter is None or not live:
+            return
+        for attack in live:
+            if attack["key"] == letter:
+                self.attacks.remove(attack)
                 self.show("Dodge!", GOOD_COLOR)
-            else:
-                self.take_hit()
+                return
+        if any(a["key"] == letter for a in self.attacks):
+            return
+        min(live, key=lambda a: a["left"])["failed"] = True
+        self.show("Miss!", BAD_COLOR)
 
     def take_hit(self):
         self.player_hp -= 1
         self.show("Hit!", BAD_COLOR)
         if self.player_hp <= 0:
             self.finish("lose")
+
+    def start_wave(self):
+        delays, t = [], 0.0
+        for _ in range(random.choice(self.wave_sizes)):
+            delays.append(t)
+            t += random.uniform(*self.attack_gap)
+        self.wave_delays = delays
+        self.attack_timer = random.uniform(*self.attack_wait)
+
+    def spawn_attack(self):
+        used_keys = {a["key"] for a in self.attacks}
+        used_lanes = {a["lane"] for a in self.attacks}
+        keys = [k for k in self.dodge_keys if k not in used_keys]
+        lanes = [i for i in range(len(LANES_Y)) if i not in used_lanes]
+        if keys and lanes:
+            self.attacks.append({"key": random.choice(keys), "left": self.dodge_time,
+                                 "lane": random.choice(lanes), "failed": False})
 
     def show(self, text, color):
         self.message = text
@@ -147,12 +168,13 @@ class BattleScene(Scene):
 
     def finish(self, result):
         self.result = result
-        self.dodge.clear()
+        self.attacks = []
+        self.wave_delays = []
         if result == "win":
             self.enemy.defeated = True
             self.result_timer = RESULT_TIME
         elif result == "lose":
-            self.enemy.stun(3.0)                    # TODO: ทำ game over จริงภายหลัง
+            self.enemy.stun(3.0)
             self.result_timer = RESULT_TIME
         else:
             self.enemy.stun(2.0)
@@ -179,8 +201,23 @@ class BattleScene(Scene):
 
         self.message_timer = max(0.0, self.message_timer - dt)
 
-        self.dodge.update(dt)
-        self.apply_dodge_results()
+        if not self.attacks and not self.wave_delays:
+            self.attack_timer -= dt
+            if self.attack_timer <= 0:
+                self.start_wave()
+
+        self.wave_delays = [d - dt for d in self.wave_delays]
+        while self.wave_delays and self.wave_delays[0] <= 0:
+            self.wave_delays.pop(0)
+            self.spawn_attack()
+
+        for attack in list(self.attacks):
+            attack["left"] -= dt
+            if attack["left"] <= 0:
+                self.attacks.remove(attack)
+                self.take_hit()
+                if self.result:
+                    break
 
     def text(self, screen, font, string_, color, **anchor):
         surface = font.render(string_, False, color)
@@ -210,24 +247,19 @@ class BattleScene(Scene):
         pygame.draw.rect(screen, SLIDER_TRACK_COLOR, bar)
         fill = bar.copy()
         fill.width = int(bar.width * self.combo_timer / COMBO_TIME)
-        fill_color = SLIDER_FILL_COLOR
-        if self.combo > 0 and self.combo_timer <= COMBO_WARNING_TIME:
-            if int(self.combo_timer / COMBO_BLINK_TIME) % 2 == 0:
-                fill_color = BAD_COLOR
-        pygame.draw.rect(screen, fill_color, fill)
+        pygame.draw.rect(screen, SLIDER_FILL_COLOR, fill)
         pygame.draw.rect(screen, BUTTON_COLOR, bar, 3)
 
-        # ผู้เล่น / ศัตรู
         screen.blit(self.player_img, self.player_pos)
         screen.blit(self.enemy_img, self.enemy_pos)
-        self.draw_hp_bar(screen, self.player_pos[0], self.player_pos[1] - 30, self.player_hp, PLAYER_MAX_HP)
+        self.draw_hp_bar(screen, self.player_pos[0], self.player_pos[1] - 30, self.player_hp, self.player_max_hp)
         self.draw_hp_bar(screen, self.enemy_pos[0], self.enemy_pos[1] - 30, self.enemy_hp, self.enemy_max_hp)
         self.text(screen, self.small_font, "Player", TEXT_COLOR, midtop=(self.player_pos[0] + 96, 610))
         self.text(screen, self.small_font, self.enemy.name, TEXT_COLOR, midtop=(self.enemy_pos[0] + 96, 610))
 
-        for attack in self.dodge.attacks:
+        for attack in self.attacks:
             lane = attack["lane"]
-            progress = 1 - attack["left"] / DODGE_TIME
+            progress = 1 - attack["left"] / self.dodge_time
             start_x = self.enemy_pos[0]
             end_x = self.player_pos[0] + 192
             x = start_x + (end_x - start_x) * progress
@@ -237,9 +269,13 @@ class BattleScene(Scene):
             pygame.draw.circle(screen, BUTTON_FILL_COLOR, center, 40)
             ring = pygame.Rect(0, 0, 90, 90)
             ring.center = center
-            fraction = max(0.0, attack["left"] / DODGE_TIME)
-            pygame.draw.arc(screen, BAD_COLOR, ring, math.pi / 2, math.pi / 2 + 2 * math.pi * fraction, 8)
-            self.text(screen, self.big_font, attack["key"], TEXT_COLOR, center=center)
+            fraction = max(0.0, attack["left"] / self.dodge_time)
+            ring_color = FAILED_COLOR if attack["failed"] else BAD_COLOR
+            pygame.draw.arc(screen, ring_color, ring, math.pi / 2, math.pi / 2 + 2 * math.pi * fraction, 8)
+            if attack["failed"]:
+                self.text(screen, self.big_font, "X", BAD_COLOR, center=center)
+            else:
+                self.text(screen, self.big_font, attack["key"], TEXT_COLOR, center=center)
 
         if self.message_timer > 0:
             self.text(screen, self.big_font, self.message, self.message_color, center=(440, 200))

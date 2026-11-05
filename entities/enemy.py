@@ -1,20 +1,31 @@
+import json
 import math
 import pygame
 from settings import HITBOX_WIDTH, HITBOX_HEIGHT, FONT_PATH
 from systems.tilemap import touches_solid
 from entities.player import AnimatedSprite
 
+ENEMY_DATA_PATH = "data/enemies.json"
+
+
+def load_enemy_data(enemy_id, path=ENEMY_DATA_PATH):
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)["enemies"][enemy_id]
+
 
 class Enemy:
     def __init__(self, x, y, idle_path, walk_paths, walk_dir, size=(64, 87),
                  patrol_range=150, speed=2, chase_speed=3,
-                 detect_radius=200, lose_radius=400, alert_time=0.5, name="Enemy"):
+                 detect_radius=200, lose_radius=400, alert_time=0.5, name=None, enemy_id="enemy_1"):
         self.sprite = AnimatedSprite(idle_path, walk_paths, size=size, walk_dir=walk_dir)
         self.rect = pygame.Rect(x, y, *size)
         self.hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)
         self.hitbox.midbottom = self.rect.midbottom
 
-        self.name = name
+        data = load_enemy_data(enemy_id)
+        self.name = name or data["name"]
+        self.hp = data["hp"]
+        self.battle = data["battle"]
         self.spawn = (x, y)
         self.patrol_range = patrol_range
         self.speed = speed
@@ -30,8 +41,8 @@ class Enemy:
         self.stunned = 0.0
 
         name_font = pygame.font.Font(FONT_PATH, 24)
-        self.name_label = name_font.render(name, False, "#FFFFFF")
-        self.name_shadow = name_font.render(name, False, "#000000")
+        self.name_label = name_font.render(self.name, False, "#FFFFFF")
+        self.name_shadow = name_font.render(self.name, False, "#000000")
         self.alert_mark = pygame.font.Font(None, 48).render("!", True, (255, 60, 60))
 
     def _move(self, dx, dy, solid):
@@ -101,7 +112,7 @@ class Enemy:
             if dist > self.lose_radius:
                 self.state = "return"
 
-        else:  # return
+        else:
             tx = self.spawn[0] - self.rect.x
             ty = self.spawn[1] - self.rect.y
             arrived = math.hypot(tx, ty) <= self.speed

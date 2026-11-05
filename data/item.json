@@ -1,0 +1,8 @@
+{
+  "items": [
+    {"id": "sharp_blade", "name": "Sharp Blade", "desc": "+1 base damage", "effects": {"damage": 1}},
+    {"id": "heavy_axe",   "name": "Heavy Axe",   "desc": "+2 base damage", "effects": {"damage": 2}},
+    {"id": "heart_charm", "name": "Heart Charm", "desc": "+2 max HP",      "effects": {"max_hp": 2}},
+    {"id": "iron_armor",  "name": "Iron Armor",  "desc": "+4 max HP",      "effects": {"max_hp": 4}}
+  ]
+}
