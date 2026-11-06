@@ -43,9 +43,13 @@ class OverworldScene(Scene):
 
         self.dialogue = DialogueSystem("data/dialouge.json", (SCREEN_WIDTH, SCREEN_HEIGHT))
         self.npcs = [
-            NPC("ผู้เฒ่า", 600, 500, "assets/sprites/npc/elder.png", "npc_elder_01"),
+            NPC("Elder", 600, 500, "assets/sprites/npc/elder.png", "npc_elder_01"),
         ]
         self.nearby_npc = None
+        self.talk_hint = pygame.font.Font(FONT_PATH, SMALL_FONT_SIZE).render("Press E", False, TEXT_COLOR)
+
+    def touches_npc(self):
+        return any(self.hitbox.colliderect(npc.hitbox) for npc in self.npcs)
 
     def handle_events(self, events):
         if self.dialogue.active:
@@ -61,9 +65,12 @@ class OverworldScene(Scene):
             elif self.settings_panel.is_active():
                 self.settings_panel.handle_event(event)
             elif event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
-                enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
-                if enemy:
-                    self.start_battle(enemy)
+                if self.nearby_npc:
+                    self.dialogue.start(self.nearby_npc)
+                else:
+                    enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
+                    if enemy:
+                        self.start_battle(enemy)
 
     def start_battle(self, enemy):
         self.game.change_scene(lambda: BattleScene(self.game, enemy, self))
@@ -100,13 +107,13 @@ class OverworldScene(Scene):
         self.player_x += dx * step
         self.player_x = max(0, min(self.player_x, self.world_width - self.player_width))
         self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
-        if touches_solid(self.hitbox, self.solid):
+        if touches_solid(self.hitbox, self.solid) or self.touches_npc():
             self.player_x = old_x
 
         self.player_y += dy * step
         self.player_y = max(0, min(self.player_y, self.world_height - self.player_height))
         self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
-        if touches_solid(self.hitbox, self.solid):
+        if touches_solid(self.hitbox, self.solid) or self.touches_npc():
             self.player_y = old_y
 
         # รีเซ็ต hitbox ให้ตรงตำแหน่งสุดท้ายจริง (กรณีโดนถอยกลับจาก collision)
@@ -137,6 +144,7 @@ class OverworldScene(Scene):
 
         # เรียงตามเท้า: ใครอยู่ต่ำกว่าบนจอ วาดทีหลัง
         drawables = [(npc.rect.bottom, npc) for npc in self.npcs]
+        drawables += [(enemy.rect.bottom, enemy) for enemy in self.encounter.enemies]
         drawables.append((self.player_y + self.player_height, None))
         drawables.sort(key=lambda d: d[0])
         for _, obj in drawables:
@@ -148,9 +156,11 @@ class OverworldScene(Scene):
 
         screen.blit(self.above, (-self.cam_x, -self.cam_y))
 
-        # ป้าย "กด E"
         if self.nearby_npc and not self.dialogue.active:
-            # วาดเหนือหัว NPC (ใช้ฟอนต์ที่รองรับไทยเหมือนกัน)
-            pass  # เติมทีหลังได้
+            hint_x = self.nearby_npc.rect.centerx - self.cam_x - self.talk_hint.get_width() // 2
+            hint_y = self.nearby_npc.rect.top - self.cam_y - self.talk_hint.get_height() - 8
+            screen.blit(self.talk_hint, (hint_x, hint_y))
+
 
         self.dialogue.draw(screen)
+        self.settings_panel.draw(screen)

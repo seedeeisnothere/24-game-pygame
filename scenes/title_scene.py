@@ -1,3 +1,4 @@
+import math
 import pygame
 from settings import *
 from scenes.scene import Scene
@@ -25,13 +26,13 @@ class TitleScene(Scene):
         self.quit_button = Button("Quit", (center_x, first_y + step_y * 2), button_font)
         self.buttons = [self.start_button, self.settings_button, self.quit_button]
         self.settings_panel = SettingsPanel(game)
-        self.planet = pygame.Surface((PLANET_RADIUS * 2, PLANET_RADIUS * 2), pygame.SRCALPHA)
-        pygame.draw.circle(self.planet, PLANET_COLOR, (PLANET_RADIUS, PLANET_RADIUS), PLANET_RADIUS)
-        for position, radius in PLANET_SPOTS:
-            pygame.draw.circle(self.planet, PLANET_SPOT_COLOR, position, radius)
+        planet_sprite = pygame.image.load(PLANET_IMAGE_PATH).convert_alpha()
+        planet_size = (planet_sprite.get_width() * PLANET_SCALE, planet_sprite.get_height() * PLANET_SCALE)
+        self.planet = pygame.transform.scale(planet_sprite, planet_size)
         self.planet_image = self.planet
         self.planet_rect = self.planet.get_rect(center=(PLANET_CENTER[0], PLANET_CENTER[1] + PLANET_START_OFFSET))
         self.planet_timer = 0.0
+        self.planet_bob_timer = 0.0
         avoid_rects = [self.title_rect] + [button.rect for button in self.buttons]
         avoid_circles = [(PLANET_CENTER, PLANET_RADIUS)]
         self.starfield = Starfield(avoid_rects, avoid_circles)
@@ -65,9 +66,12 @@ class TitleScene(Scene):
         if not self.game.curtain.is_busy() and self.planet_timer < PLANET_INTRO_TIME:
             self.planet_timer = min(self.planet_timer + dt, PLANET_INTRO_TIME)
             remaining = 1 - ease_out(self.planet_timer / PLANET_INTRO_TIME, PLANET_EASE)
-            self.planet_image = pygame.transform.rotate(self.planet, PLANET_SPIN_DEGREES * remaining)
             center = (PLANET_CENTER[0], PLANET_CENTER[1] + PLANET_START_OFFSET * remaining)
             self.planet_rect = self.planet_image.get_rect(center=center)
+        elif self.planet_timer >= PLANET_INTRO_TIME:
+            self.planet_bob_timer += dt
+            bob = PLANET_BOB_AMPLITUDE * math.sin(self.planet_bob_timer * 2 * math.pi / PLANET_BOB_PERIOD)
+            self.planet_rect.centery = round(PLANET_CENTER[1] + bob)
         self.settings_panel.update(dt, mouse_pos)
 
     def draw(self, screen):

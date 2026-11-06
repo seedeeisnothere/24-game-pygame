@@ -49,6 +49,8 @@ class DialogueSystem:
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.advance()
+            elif event.type == pygame.KEYDOWN and event.key in (pygame.K_e, pygame.K_SPACE, pygame.K_RETURN):
+                self.advance()
 
     def _wrap(self, text, max_width):
         words = text.split(" ")
@@ -101,6 +103,6 @@ class DialogueSystem:
             y += 36
 
         # ตัวบอกว่าคลิกต่อได้
-        hint = self.font.render("v Click to continue", True, (180, 180, 220))
+        hint = self.font.render("v Click or press E to continue", True, (180, 180, 220))
         screen.blit(hint, (self.box_rect.right - hint.get_width() - 24,
                            self.box_rect.bottom - 40))

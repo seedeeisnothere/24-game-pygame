@@ -8,7 +8,7 @@ from scenes.overworld_scene import OverworldScene
 
 SCENES = {
     "title": TitleScene,
-    "overworld": OverworldScene,
+    "overworld": OverworldScene, 
 }
 
 
