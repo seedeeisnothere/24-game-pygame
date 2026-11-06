@@ -8,6 +8,8 @@ from scenes.scene import Scene
 from scenes.battle_scene import BattleScene
 from entities.npc import NPC
 from systems.dialouge import DialogueSystem
+from systems.status_menu import StatusMenu
+from systems.hud import MenuHint
 
 
 class OverworldScene(Scene):
@@ -31,14 +33,14 @@ class OverworldScene(Scene):
         self.cam_x = 0
         self.cam_y = 0
         self.settings_panel = SettingsPanel(game, in_game=True)
+        self.menu = StatusMenu(game)
 
-        # ศัตรูตัวอย่าง: ตอนนี้ยืมสไปรต์ผู้เล่นไปก่อน เปลี่ยน path เมื่อมีรูปศัตรูจริง
-        # และควรวางตำแหน่งให้อยู่บนพื้นที่เดินได้ (ไม่ทับ collision)
         self.encounter = EnemyEncounter([
             Enemy(self.player_x + 300, self.player_y,
                   "assets/sprites/player/idle.png", walk_paths,
                   walk_dir="assets/sprites/player/walk"),
         ])
+        self.menu_hint = MenuHint()
 
 
         self.dialogue = DialogueSystem("data/dialouge.json", (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -57,16 +59,24 @@ class OverworldScene(Scene):
             return
 
         for event in events:
+            if self.menu.is_open:
+                self.menu.handle_event(event)
+                continue
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 if self.settings_panel.is_active():
                     self.settings_panel.close()
                 else:
                     self.settings_panel.open()
+                    self.game.update_walk_sfx(False)
             elif self.settings_panel.is_active():
                 self.settings_panel.handle_event(event)
-            elif event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_e):
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                self.menu.open()
+                self.game.update_walk_sfx(False)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_e:
                 if self.nearby_npc:
                     self.dialogue.start(self.nearby_npc)
+                    self.game.update_walk_sfx(False)
                 else:
                     enemy = self.encounter.enemy_in_front(self.hitbox, self.sprite.facing_right)
                     if enemy:
@@ -80,7 +90,11 @@ class OverworldScene(Scene):
             self.sprite.moving = False
             self.sprite.update(dt)
             return
-        
+
+        if self.menu.is_open:
+            self.menu.update(dt)
+            return
+
         self.settings_panel.update(dt, pygame.mouse.get_pos())
         if self.settings_panel.is_active():
             return
@@ -161,6 +175,8 @@ class OverworldScene(Scene):
             hint_y = self.nearby_npc.rect.top - self.cam_y - self.talk_hint.get_height() - 8
             screen.blit(self.talk_hint, (hint_x, hint_y))
 
-
         self.dialogue.draw(screen)
+        if not self.menu.is_open:
+            self.menu_hint.draw(screen)
         self.settings_panel.draw(screen)
+        self.menu.draw(screen)
