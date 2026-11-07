@@ -5,13 +5,13 @@ from systems.transition import Curtain
 from scenes.title_scene import TitleScene
 from scenes.overworld_scene import OverworldScene
 from systems.game_state import GameState
-
+from scenes.gameover_scene import GameOverScene
 
 SCENES = {
     "title": TitleScene,
-    "overworld": OverworldScene, 
+    "overworld": OverworldScene,
+    "gameover": GameOverScene,
 }
-
 
 class Game:
     def __init__(self):

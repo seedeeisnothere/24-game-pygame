@@ -81,3 +81,4 @@ ATTACK_GAP = (1.2, 2.0)
 MAX_ATTACKS = 2
 DODGE_TIME = 1.8
 DODGE_KEYS = "WASD"
+POTION_ICON_PATH = "assets/item_assets/Healing_Potion.png"

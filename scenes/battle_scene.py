@@ -6,12 +6,15 @@ from settings import *
 from scenes.scene import Scene
 from logic.game24 import Game24, OPS
 from logic.puzzle_bank import load_puzzles, random_puzzle
+from systems.game_state import HEAL_AMOUNT
+from systems.icons import load_icon, dimmed
 
 COMBO_TIME = 10.0
 COMBO_MAX = 5
 LANES_Y = (400, 470, 540)
 RESULT_TIME = 1.5
 PANEL_X = 880
+HEAL_RECT = pygame.Rect(40, 700, 90, 90)
 
 OP_LABELS = {"+": "+", "-": "-", "*": "x", "/": "/"}
 
@@ -78,6 +81,10 @@ class BattleScene(Scene):
         self.result = None
         self.result_timer = 0.0
         self.leaving = False
+        self.player_max_hp = game.state.max_hp
+        self.player_hp = game.state.hp
+        self.heal_icon = load_icon(POTION_ICON_PATH, 48)
+        self.heal_icon_dim = dimmed(self.heal_icon)
 
     def handle_events(self, events):
         for event in events:
@@ -86,6 +93,8 @@ class BattleScene(Scene):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.finish("flee")
+                elif event.scancode == pygame.KSCAN_Q:
+                    self.use_potion()
                 else:
                     self.press_letter(event.scancode)
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -144,6 +153,19 @@ class BattleScene(Scene):
         if self.player_hp <= 0:
             self.finish("lose")
 
+    def use_potion(self):
+        state = self.game.state
+        if state.potions <= 0:
+            self.show("No potion", BAD_COLOR)
+            return
+        if self.player_hp >= self.player_max_hp:
+            self.show("HP full", BAD_COLOR)
+            return
+        state.potions -= 1
+        healed = min(HEAL_AMOUNT, self.player_max_hp - self.player_hp)
+        self.player_hp += healed
+        self.show(f"+{healed}", GOOD_COLOR)
+
     def start_wave(self):
         delays, t = [], 0.0
         for _ in range(random.choice(self.wave_sizes)):
@@ -168,6 +190,7 @@ class BattleScene(Scene):
 
     def finish(self, result):
         self.result = result
+        self.game.state.set_hp(self.player_hp)
         self.attacks = []
         self.wave_delays = []
         if result == "win":
@@ -183,7 +206,10 @@ class BattleScene(Scene):
     def leave(self):
         if self.game.curtain.is_busy():
             return
-        self.game.change_scene(lambda: self.overworld)
+        if self.result == "lose":
+            self.game.change_scene("gameover")
+        else:
+            self.game.change_scene(lambda: self.overworld)
         self.leaving = True
 
     def update(self, dt):
@@ -281,7 +307,7 @@ class BattleScene(Scene):
             self.text(screen, self.big_font, self.message, self.message_color, center=(440, 200))
 
         mouse = pygame.mouse.get_pos()
-        self.draw_box(screen, self.target_rect, BUTTON_COLOR, "24")
+        self.draw_box(screen, self.target_rect, BUTTON_COLOR, "GAME 24")
         for i, rect in enumerate(self.number_rects):
             value = self.puzzle.values[i]
             if value is None:
@@ -298,7 +324,15 @@ class BattleScene(Scene):
             color = BUTTON_HOVER_COLOR if active or hovered else BUTTON_COLOR
             self.draw_box(screen, rect, color, OP_LABELS[op])
         self.text(screen, self.small_font, "Right-click = reset", TEXT_COLOR, midtop=(1080, 670))
-
+        
+        potions = self.game.state.potions
+        border = BUTTON_COLOR if potions > 0 else FAILED_COLOR
+        self.draw_box(screen, HEAL_RECT, border)
+        icon = self.heal_icon if potions > 0 else self.heal_icon_dim
+        screen.blit(icon, icon.get_rect(center=(HEAL_RECT.centerx, HEAL_RECT.top + 32)))
+        self.text(screen, self.small_font, f"x{potions}", TEXT_COLOR, midbottom=(HEAL_RECT.centerx, HEAL_RECT.bottom - 4))
+        self.text(screen, self.small_font, "Q", TEXT_COLOR, midleft=(HEAL_RECT.right + 12, HEAL_RECT.centery))
+        
         if self.result in ("win", "lose"):
             overlay_text = "VICTORY" if self.result == "win" else "DEFEATED"
             self.text(screen, self.big_font, overlay_text, TEXT_COLOR, center=(440, 400))

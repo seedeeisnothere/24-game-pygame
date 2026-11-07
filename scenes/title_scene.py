@@ -6,6 +6,7 @@ from systems.ui import Button
 from systems.settings_panel import SettingsPanel
 from systems.starfield import Starfield
 from systems.tween import ease_out
+from systems.game_state import GameState
 
 
 class TitleScene(Scene):
@@ -47,6 +48,7 @@ class TitleScene(Scene):
             quit_clicked = self.quit_button.handle_event(event)
             if start_clicked:
                 self.game.play_sfx("select")
+                self.game.state = GameState()
                 self.game.change_scene("overworld")
             elif settings_clicked:
                 self.game.play_sfx("select")

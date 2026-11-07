@@ -1,5 +1,6 @@
 import pygame
 from settings import *
+from systems.icons import load_icon
 
 HP_COLOR = "#C0392B"
 DIM_COLOR = "#5A6480"
@@ -26,6 +27,7 @@ class StatusMenu:
         slot_count = len(game.state.inventory.equipped)
         self.slot_rects = [pygame.Rect(180 + i * 150, 430, 130, 130) for i in range(slot_count)]
         self.row_rects = [pygame.Rect(680, 250 + i * 92, 420, 84) for i in range(MAX_ROWS)]
+        self.potion_icon = load_icon(POTION_ICON_PATH, 36)
 
     def open(self):
         self.is_open = True
@@ -90,6 +92,8 @@ class StatusMenu:
         self.text(screen, self.small_font, f"{state.hp} / {state.max_hp}", TEXT_COLOR, center=self.hp_bar.center)
 
         damage_text = f"Damage  {state.base_damage}"
+        screen.blit(self.potion_icon, (180, 343))
+        self.text(screen, self.small_font, f"Heal Potion  x{state.potions}", TEXT_COLOR, topleft=(180 + self.potion_icon.get_width() + 12, 345))
         if state.damage_bonus:
             damage_text += f"  (+{state.damage_bonus})"
         self.text(screen, self.small_font, damage_text, TEXT_COLOR, topleft=(180, 305))
@@ -100,7 +104,7 @@ class StatusMenu:
             if item_id is None:
                 self.text(screen, self.tiny_font, "Empty", DIM_COLOR, center=rect.center)
                 continue
-            lines = inventory.items[item_id]["name"].split(" ")       # ชื่อยาวให้ขึ้นบรรทัดใหม่ทีละคำ
+            lines = inventory.items[item_id]["name"].split(" ")
             top = rect.centery - len(lines) * 14
             for n, line in enumerate(lines):
                 self.text(screen, self.tiny_font, line, TEXT_COLOR, center=(rect.centerx, top + 14 + n * 28))
