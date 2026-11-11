@@ -32,7 +32,7 @@ class TestInventory(unittest.TestCase):
         self.assertTrue(inventory.equip("a"))
         self.assertTrue(inventory.equip("b"))
         self.assertTrue(inventory.equip("c"))
-        self.assertFalse(inventory.equip("d"))
+        self.assertFalse(inventory.equip("d"))            # ช่องเต็ม
 
     def test_cannot_equip_same_item_twice(self):
         inventory = self.make()
@@ -45,9 +45,9 @@ class TestInventory(unittest.TestCase):
             inventory.equip(item_id)
         self.assertEqual(inventory.total("damage"), 3)
         self.assertEqual(inventory.total("max_hp"), 3)
-        inventory.unequip(2)
+        inventory.unequip(2)                              # ถอด c
         self.assertEqual(inventory.total("damage"), 1)
-        self.assertTrue(inventory.equip("d"))
+        self.assertTrue(inventory.equip("d"))             # มีช่องว่างแล้ว
 
 
 class TestGameState(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestGameState(unittest.TestCase):
         state = GameState(ITEMS)
         state.add_coins(5)
         self.assertFalse(state.spend_coins(6))
-        self.assertEqual(state.coins, 5)
+        self.assertEqual(state.coins, 5)       # ไม่พอ = ไม่หัก
         self.assertTrue(state.spend_coins(5))
         self.assertEqual(state.coins, 0)
 

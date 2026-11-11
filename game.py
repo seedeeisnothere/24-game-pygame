@@ -66,7 +66,7 @@ class Game:
             if not self.curtain.is_busy():
                 self.scene.handle_events(events)
             if self.curtain.state in ("idle", "holding", "opening"):
-                self.scene.update(dt)                 # ตอนม่านกำลังปิด ไม่อัปเดต = ภาพค้าง
+                self.scene.update(dt)
             self.curtain.update(dt)
             self.scene.draw(self.screen)
             self.curtain.draw(self.screen)
