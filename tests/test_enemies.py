@@ -2,17 +2,22 @@ import json
 import string
 import unittest
 
+# Largest wave size allowed in enemy data
 MAX_ATTACKS_AT_ONCE = 3
 
 
+# Checks that data/enemies.json is filled in correctly
 class TestEnemyData(unittest.TestCase):
+    # Load the enemy data before each test
     def setUp(self):
         with open("data/enemies.json", "r", encoding="utf-8") as file:
             self.enemies = json.load(file)["enemies"]
 
+    # The data file has at least one enemy
     def test_there_is_at_least_one_enemy(self):
         self.assertTrue(self.enemies)
 
+    # Every enemy has sensible stats and battle settings
     def test_every_enemy_is_valid(self):
         low, high = enemy["coin_reward"]
         self.assertTrue(1 <= low <= high, f"{enemy_id}.coin_reward")

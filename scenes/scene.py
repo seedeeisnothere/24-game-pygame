@@ -1,3 +1,4 @@
+# Base class for every scene; subclasses override these three hooks.
 class Scene:
     def __init__(self, game):
         self.game = game

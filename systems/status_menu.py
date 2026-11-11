@@ -7,6 +7,7 @@ DIM_COLOR = "#5A6480"
 MAX_ROWS = 5
 
 
+# Status window: HP, damage, potions, equipment slots and items
 class StatusMenu:
 
     def __init__(self, game):
@@ -19,13 +20,16 @@ class StatusMenu:
         self.small_font = pygame.font.Font(FONT_PATH, SMALL_FONT_SIZE)
         self.tiny_font = pygame.font.Font(FONT_PATH, CREDITS_FONT_SIZE)
 
+        # Dark see-through layer behind the panel
         self.dim = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.dim.fill((0, 0, 0, 170))
         self.panel = pygame.Rect(140, 80, 1000, 640)
         self.hp_bar = pygame.Rect(180, 230, 440, 44)
 
+        # One square box per equipment slot, in a row
         slot_count = len(game.state.inventory.equipped)
         self.slot_rects = [pygame.Rect(180 + i * 150, 430, 130, 130) for i in range(slot_count)]
+        # Item list on the right side
         self.row_rects = [pygame.Rect(680, 250 + i * 92, 420, 84) for i in range(MAX_ROWS)]
         self.potion_icon = load_icon(POTION_ICON_PATH, 36)
 
@@ -36,6 +40,7 @@ class StatusMenu:
     def close(self):
         self.is_open = False
 
+    # Show a red message at the bottom for 1.5 seconds
     def show(self, text):
         self.message = text
         self.message_timer = 1.5
@@ -46,6 +51,7 @@ class StatusMenu:
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self.click(event.pos)
 
+    # Click a slot to unequip, or an item to equip/unequip it
     def click(self, pos):
         inventory = self.game.state.inventory
         for slot, rect in enumerate(self.slot_rects):
@@ -60,17 +66,21 @@ class StatusMenu:
                     self.show("Slots full")
                 return
 
+    # Count down the message timer
     def update(self, dt):
         self.message_timer = max(0.0, self.message_timer - dt)
 
+    # Render text and place it with a rect anchor like topleft=(x, y)
     def text(self, screen, font, string, color, **anchor):
         surface = font.render(string, False, color)
         screen.blit(surface, surface.get_rect(**anchor))
 
+    # Draw a filled rounded box with a coloured border
     def draw_box(self, screen, rect, border_color):
         pygame.draw.rect(screen, BUTTON_FILL_COLOR, rect, border_radius=BUTTON_RADIUS)
         pygame.draw.rect(screen, border_color, rect, width=4, border_radius=BUTTON_RADIUS)
 
+    # Draw the whole status window
     def draw(self, screen):
         if not self.is_open:
             return
@@ -83,6 +93,7 @@ class StatusMenu:
         pygame.draw.rect(screen, BUTTON_COLOR, self.panel, width=5, border_radius=BUTTON_RADIUS)
         self.text(screen, self.big_font, "Status", TEXT_COLOR, topleft=(180, 110))
 
+        # HP bar: grey track, red fill sized by hp / max_hp, white border
         self.text(screen, self.small_font, "HP", TEXT_COLOR, topleft=(180, 190))
         pygame.draw.rect(screen, SLIDER_TRACK_COLOR, self.hp_bar)
         fill = self.hp_bar.copy()
@@ -93,7 +104,9 @@ class StatusMenu:
 
         damage_text = f"Damage  {state.base_damage}"
         screen.blit(self.potion_icon, (180, 343))
-        self.text(screen, self.small_font, f"Heal Potion  x{state.potions}", TEXT_COLOR, topleft=(180 + self.potion_icon.get_width() + 12, 345))
+        self.text(screen, self.small_font, f"Heal Potion  x{state.potions}", TEXT_COLOR,
+                  topleft=(180 + self.potion_icon.get_width() + 12, 345))
+        # Show bonus damage from equipment, if any
         if state.damage_bonus:
             damage_text += f"  (+{state.damage_bonus})"
         self.text(screen, self.small_font, damage_text, TEXT_COLOR, topleft=(180, 305))
@@ -104,6 +117,7 @@ class StatusMenu:
             if item_id is None:
                 self.text(screen, self.tiny_font, "Empty", DIM_COLOR, center=rect.center)
                 continue
+            # One word per line, centred vertically (28 px line height)
             lines = inventory.items[item_id]["name"].split(" ")
             top = rect.centery - len(lines) * 14
             for n, line in enumerate(lines):
@@ -121,7 +135,8 @@ class StatusMenu:
             self.text(screen, self.small_font, item["name"], name_color, topleft=(rect.x + 16, rect.y + 8))
             self.text(screen, self.tiny_font, item["desc"], DIM_COLOR, topleft=(rect.x + 16, rect.y + 50))
             if equipped:
-                self.text(screen, self.tiny_font, "Equipped", BUTTON_HOVER_COLOR, midright=(rect.right - 16, rect.y + 24))
+                self.text(screen, self.tiny_font, "Equipped", BUTTON_HOVER_COLOR,
+                          midright=(rect.right - 16, rect.y + 24))
 
         if self.message_timer > 0:
             self.text(screen, self.small_font, self.message, "#E0524A", midbottom=(640, 655))

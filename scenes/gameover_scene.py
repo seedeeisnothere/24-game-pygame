@@ -4,6 +4,7 @@ from scenes.scene import Scene
 from systems.ui import Button
 
 
+# Game over screen with a single button back to the title.
 class GameOverScene(Scene):
     def __init__(self, game):
         super().__init__(game)
@@ -20,6 +21,7 @@ class GameOverScene(Scene):
                 self.game.change_scene("title")
 
     def update(self, dt):
+        # During a scene transition, use an off-screen mouse so nothing hovers.
         blocked = self.game.curtain.is_busy()
         mouse_pos = (-1, -1) if blocked else pygame.mouse.get_pos()
         if self.button.update(mouse_pos):
