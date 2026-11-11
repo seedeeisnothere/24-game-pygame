@@ -82,3 +82,6 @@ MAX_ATTACKS = 2
 DODGE_TIME = 1.8
 DODGE_KEYS = "WASD"
 POTION_ICON_PATH = "assets/item_assets/Healing_Potion.png"
+COIN_ICON_PATH = "assets/item_assets/Coin.png"
+COIN_ICON_HEIGHT = 40
+COIN_GAP = 10

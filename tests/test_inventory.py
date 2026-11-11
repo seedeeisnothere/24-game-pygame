@@ -69,6 +69,14 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(state.base_damage, BASE_DAMAGE + 1)
         self.assertEqual(state.hp, state.max_hp)
 
+    def test_coins(self):
+        state = GameState(ITEMS)
+        state.add_coins(5)
+        self.assertFalse(state.spend_coins(6))
+        self.assertEqual(state.coins, 5)       # ไม่พอ = ไม่หัก
+        self.assertTrue(state.spend_coins(5))
+        self.assertEqual(state.coins, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

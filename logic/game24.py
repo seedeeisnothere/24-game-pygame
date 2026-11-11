@@ -57,7 +57,7 @@ class Game24:
                 return
             self.values[i] = result
             self.values[self.first] = None
-            self.first = None
+            self.first = i
             self.op = None
 
     def click_op(self, op):

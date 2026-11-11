@@ -3,6 +3,7 @@
     "enemy_1": {
       "name": "enemy_1",
       "hp": 3,
+      "coin_reward": [1, 5],
       "battle": {
         "attack_wait": [5.0, 8.0],
         "wave_sizes": [1],

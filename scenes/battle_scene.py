@@ -8,6 +8,7 @@ from logic.game24 import Game24, OPS
 from logic.puzzle_bank import load_puzzles, random_puzzle
 from systems.game_state import HEAL_AMOUNT
 from systems.icons import load_icon, dimmed
+from systems.hud import CoinCounter
 
 COMBO_TIME = 10.0
 COMBO_MAX = 5
@@ -85,6 +86,10 @@ class BattleScene(Scene):
         self.player_hp = game.state.hp
         self.heal_icon = load_icon(POTION_ICON_PATH, 48)
         self.heal_icon_dim = dimmed(self.heal_icon)
+        self.coins_earned = 0
+        self.coin_counter = CoinCounter()
+
+
 
     def handle_events(self, events):
         for event in events:
@@ -195,6 +200,8 @@ class BattleScene(Scene):
         self.wave_delays = []
         if result == "win":
             self.enemy.defeated = True
+            self.coins_earned = random.randint(*self.enemy.coin_reward)
+            self.game.state.add_coins(self.coins_earned)
             self.result_timer = RESULT_TIME
         elif result == "lose":
             self.enemy.stun(3.0)
@@ -282,6 +289,9 @@ class BattleScene(Scene):
         self.draw_hp_bar(screen, self.enemy_pos[0], self.enemy_pos[1] - 30, self.enemy_hp, self.enemy_max_hp)
         self.text(screen, self.small_font, "Player", TEXT_COLOR, midtop=(self.player_pos[0] + 96, 610))
         self.text(screen, self.small_font, self.enemy.name, TEXT_COLOR, midtop=(self.enemy_pos[0] + 96, 610))
+
+        if self.result == "win":
+            self.text(screen, self.small_font, f"+{self.coins_earned} coins", TEXT_COLOR, center=(440, 460))
 
         for attack in self.attacks:
             lane = attack["lane"]

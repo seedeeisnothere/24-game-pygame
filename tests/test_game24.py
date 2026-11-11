@@ -17,14 +17,15 @@ class TestGame24(unittest.TestCase):
     def test_play_through_solved(self):
         game = Game24([2, 12, 1, 1])
         game.click_number(0); game.click_op("*"); game.click_number(1)   # 2*12 = 24 (อยู่ช่อง 1)
-        game.click_number(1); game.click_op("*"); game.click_number(2)   # 24*1
-        game.click_number(2); game.click_op("*"); game.click_number(3)   # 24*1
+        game.click_op("*"); game.click_number(2)   # 24*1
+        game.click_op("*"); game.click_number(3)   # 24*1
         self.assertTrue(game.solved)
 
     def test_failed_and_reset(self):
         game = Game24([1, 1, 1, 1])
-        for a, b in ((0, 1), (1, 2), (2, 3)):
-            game.click_number(a); game.click_op("+"); game.click_number(b)
+        game.click_number(0)
+        for b in (1, 2, 3):
+            game.click_op("+"); game.click_number(b)
         self.assertTrue(game.failed)
         game.reset()
         self.assertEqual(len(game.remaining()), 4)

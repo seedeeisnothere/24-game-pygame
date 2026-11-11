@@ -25,6 +25,7 @@ class Enemy:
         data = load_enemy_data(enemy_id)
         self.name = name or data["name"]
         self.hp = data["hp"]
+        self.coin_reward = tuple(data["coin_reward"])
         self.battle = data["battle"]
         self.spawn = (x, y)
         self.patrol_range = patrol_range

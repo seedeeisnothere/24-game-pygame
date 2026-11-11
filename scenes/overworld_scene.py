@@ -9,8 +9,8 @@ from scenes.battle_scene import BattleScene
 from entities.npc import NPC
 from systems.dialouge import DialogueSystem
 from systems.status_menu import StatusMenu
-from systems.hud import MenuHint
 from entities.gate import Gate
+from systems.hud import MenuHint, CoinCounter
 
 
 class OverworldScene(Scene):
@@ -42,6 +42,7 @@ class OverworldScene(Scene):
                   walk_dir="assets/sprites/player/walk"),
         ])
         self.menu_hint = MenuHint()
+        self.coin_counter = CoinCounter()
 
         self.boss = self.encounter.enemies[0]
         self.gates = [Gate(tiles, rects) for tiles, rects in gate_data]
@@ -188,5 +189,6 @@ class OverworldScene(Scene):
         self.dialogue.draw(screen)
         if not self.menu.is_open:
             self.menu_hint.draw(screen)
+        self.coin_counter.draw(screen, self.game.state.coins)
         self.settings_panel.draw(screen)
         self.menu.draw(screen)
