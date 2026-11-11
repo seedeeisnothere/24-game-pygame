@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 from systems.inventory import Inventory, load_items
 
 BASE_MAX_HP = 5
@@ -46,4 +44,3 @@ class GameState:
     @property
     def base_damage(self):
         return BASE_DAMAGE + self.damage_bonus
->>>>>>> Stashed changes

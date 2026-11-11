@@ -86,12 +86,8 @@ WAVE_SIZES = (1, 1, 2)
 ATTACK_GAP = (1.2, 2.0)
 MAX_ATTACKS = 2
 DODGE_TIME = 1.8
-<<<<<<< Updated upstream
-DODGE_KEYS = "WASD"
-=======
 DODGE_KEYS = "WASD"
 POTION_ICON_PATH = "assets/item_assets/Healing_Potion.png"
 COIN_ICON_PATH = "assets/item_assets/Coin.png"
 COIN_ICON_HEIGHT = 40
 COIN_GAP = 10
->>>>>>> Stashed changes

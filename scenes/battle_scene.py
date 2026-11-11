@@ -5,13 +5,9 @@ from settings import *
 from scenes.scene import Scene
 from logic.game24 import Game24, OPS
 from logic.puzzle_bank import load_puzzles, random_puzzle
-<<<<<<< Updated upstream
-from logic.dodge import DodgeEvent
-=======
 from systems.game_state import HEAL_AMOUNT
 from systems.icons import load_icon, dimmed
 from systems.hud import CoinCounter
->>>>>>> Stashed changes
 
 PLAYER_MAX_HP = 5
 ENEMY_MAX_HP = 5          # ถ้า Enemy มี .hp ของตัวเอง จะใช้ค่านั้นแทน
@@ -81,8 +77,6 @@ class BattleScene(Scene):
         self.result = None
         self.result_timer = 0.0
         self.leaving = False
-<<<<<<< Updated upstream
-=======
         self.player_max_hp = game.state.max_hp
         self.player_hp = game.state.hp
         self.heal_icon = load_icon(POTION_ICON_PATH, 48)
@@ -91,7 +85,6 @@ class BattleScene(Scene):
         self.coin_counter = CoinCounter()
 
 
->>>>>>> Stashed changes
 
     # ---------- ควบคุม ----------
     def handle_events(self, events):
@@ -244,14 +237,10 @@ class BattleScene(Scene):
         self.text(screen, self.small_font, "Player", TEXT_COLOR, midtop=(self.player_pos[0] + 96, 610))
         self.text(screen, self.small_font, self.enemy.name, TEXT_COLOR, midtop=(self.enemy_pos[0] + 96, 610))
 
-<<<<<<< Updated upstream
-        for attack in self.dodge.attacks:
-=======
         if self.result == "win":
             self.text(screen, self.small_font, f"+{self.coins_earned} coins", TEXT_COLOR, center=(440, 460))
 
         for attack in self.attacks:
->>>>>>> Stashed changes
             lane = attack["lane"]
             progress = 1 - attack["left"] / DODGE_TIME
             start_x = self.enemy_pos[0]
