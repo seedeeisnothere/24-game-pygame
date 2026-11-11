@@ -41,7 +41,6 @@ def load_tiles(sheet_path):
             tile = sheet.subsurface(rect)
             tile = pygame.transform.scale(tile, (TILE * SCALE, TILE * SCALE))
             tiles.append(tile)
-
     return tiles
 
 def load_tilesets(data, json_path):
@@ -50,6 +49,28 @@ def load_tilesets(data, json_path):
         sheet_path = f"assets/tiles/{tileset["source"][:-3]}png"
         tilesets[tileset["firstgid"]] = load_tiles(sheet_path)
     return tilesets
+
+def read_gate(layer, name, map_width, tilesets, firstgids):
+    tiles = []
+    rects = []
+    tile_size = TILE * SCALE
+
+    for index, raw_gid in enumerate(layer["data"]):
+        gid = raw_gid & FLIP_MASK
+        if gid == 0:
+            continue
+        row, col = index_to_cell(index, map_width)
+        position = (col * tile_size, row * tile_size)
+        rects.append(pygame.Rect(position, (tile_size, tile_size)))
+        if name.startswith("gate_wall"):
+            continue
+        firstgid = find_firstgid(gid, firstgids)
+        tile = tilesets[firstgid][gid - firstgid]
+        flags = raw_gid & ~FLIP_MASK
+        if flags:
+            tile = apply_flips(tile, flags)
+        tiles.append((tile, position))
+    return tiles, rects
 
 def load_map(json_path):
     with open(json_path, "r") as file:
@@ -64,14 +85,18 @@ def load_map(json_path):
     below = pygame.Surface(size, pygame.SRCALPHA)
     above = pygame.Surface(size, pygame.SRCALPHA)
     flip_cache = {}
+    gates = []
 
     for layer in data["layers"]:
         if layer["type"] != "tilelayer":
             continue
-        if not layer.get("visible", True):
-            continue
 
         name = layer["name"].lower()
+        if name.startswith("gate"):
+            gates.append(read_gate(layer, name, map_width, tilesets, firstgids))
+            continue
+        if not layer.get("visible", True):
+            continue
         if name.startswith("collision"):
             continue
         target = above if name.startswith("above") else below
@@ -92,7 +117,7 @@ def load_map(json_path):
                 tile = flip_cache[key]
             target.blit(tile, (col * TILE * SCALE, row * TILE * SCALE))
 
-    return below, above
+    return below, above, gates
 
 def load_collision(json_path):
     with open(json_path, "r") as file:

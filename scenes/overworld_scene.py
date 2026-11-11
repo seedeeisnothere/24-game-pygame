@@ -10,12 +10,13 @@ from entities.npc import NPC
 from systems.dialouge import DialogueSystem
 from systems.status_menu import StatusMenu
 from systems.hud import MenuHint
+from entities.gate import Gate
 
 
 class OverworldScene(Scene):
     def __init__(self, game):
         super().__init__(game)
-        self.below, self.above = load_map(MAP_PATH)
+        self.below, self.above, gate_data = load_map(MAP_PATH)
         self.solid = load_collision(MAP_PATH)
         self.world_width = self.below.get_width()
         self.world_height = self.below.get_height()
@@ -42,6 +43,8 @@ class OverworldScene(Scene):
         ])
         self.menu_hint = MenuHint()
 
+        self.boss = self.encounter.enemies[0]
+        self.gates = [Gate(tiles, rects) for tiles, rects in gate_data]
 
         self.dialogue = DialogueSystem("data/dialouge.json", (SCREEN_WIDTH, SCREEN_HEIGHT))
         self.npcs = [
@@ -52,6 +55,9 @@ class OverworldScene(Scene):
 
     def touches_npc(self):
         return any(self.hitbox.colliderect(npc.hitbox) for npc in self.npcs)
+
+    def touches_gate(self):
+        return any(gate.blocks(self.hitbox) for gate in self.gates)
 
     def handle_events(self, events):
         if self.dialogue.active:
@@ -98,6 +104,8 @@ class OverworldScene(Scene):
         self.settings_panel.update(dt, pygame.mouse.get_pos())
         if self.settings_panel.is_active():
             return
+        for gate in self.gates:
+            gate.open = self.boss.defeated
         keys = pygame.key.get_pressed()
         left  = keys[pygame.K_LEFT]  or keys[pygame.K_a]
         right = keys[pygame.K_RIGHT] or keys[pygame.K_d]
@@ -121,13 +129,13 @@ class OverworldScene(Scene):
         self.player_x += dx * step
         self.player_x = max(0, min(self.player_x, self.world_width - self.player_width))
         self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
-        if touches_solid(self.hitbox, self.solid) or self.touches_npc():
+        if touches_solid(self.hitbox, self.solid) or self.touches_npc() or self.touches_gate():
             self.player_x = old_x
 
         self.player_y += dy * step
         self.player_y = max(0, min(self.player_y, self.world_height - self.player_height))
         self.hitbox.topleft = (self.player_x + self.hitbox_offset_x, self.player_y + self.hitbox_offset_y)
-        if touches_solid(self.hitbox, self.solid) or self.touches_npc():
+        if touches_solid(self.hitbox, self.solid) or self.touches_npc() or self.touches_gate():
             self.player_y = old_y
 
         # รีเซ็ต hitbox ให้ตรงตำแหน่งสุดท้ายจริง (กรณีโดนถอยกลับจาก collision)
@@ -155,6 +163,8 @@ class OverworldScene(Scene):
     def draw(self, screen):
         screen.fill((60, 90, 120))
         screen.blit(self.below, (-self.cam_x, -self.cam_y))
+        for gate in self.gates:
+            gate.draw(screen, self.cam_x, self.cam_y)
 
         # เรียงตามเท้า: ใครอยู่ต่ำกว่าบนจอ วาดทีหลัง
         drawables = [(npc.rect.bottom, npc) for npc in self.npcs]
