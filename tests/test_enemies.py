@@ -14,6 +14,8 @@ class TestEnemyData(unittest.TestCase):
         self.assertTrue(self.enemies)
 
     def test_every_enemy_is_valid(self):
+        low, high = enemy["coin_reward"]
+        self.assertTrue(1 <= low <= high, f"{enemy_id}.coin_reward")
         for enemy_id, enemy in self.enemies.items():
             battle = enemy["battle"]
             self.assertTrue(enemy["name"], enemy_id)

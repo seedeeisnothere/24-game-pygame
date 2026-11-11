@@ -5,7 +5,7 @@ BASE_DAMAGE = 1
 HEAL_AMOUNT = 2
 STARTING_POTIONS = 3
 STARTING_ITEMS = ["sharp_blade", "heart_charm"]
-
+STARTING_COINS = 0
 
 class GameState:
 
@@ -13,8 +13,18 @@ class GameState:
         self.inventory = Inventory(items if items is not None else load_items())
         self.lost_hp = 0
         self.potions = STARTING_POTIONS
+        self.coins = STARTING_COINS
         for item_id in STARTING_ITEMS:
             self.inventory.add(item_id)
+
+    def add_coins(self, amount):
+        self.coins += amount
+
+    def spend_coins(self, amount):
+        if amount > self.coins:
+            return False
+        self.coins -= amount
+        return True
 
     @property
     def max_hp(self):
