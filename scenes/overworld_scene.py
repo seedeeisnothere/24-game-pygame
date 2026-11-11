@@ -8,6 +8,11 @@ from scenes.scene import Scene
 from scenes.battle_scene import BattleScene
 from entities.npc import NPC
 from systems.dialouge import DialogueSystem
+<<<<<<< Updated upstream
+=======
+from systems.status_menu import StatusMenu
+from systems.hud import MenuHint, CoinCounter
+>>>>>>> Stashed changes
 
 
 class OverworldScene(Scene):
@@ -39,6 +44,11 @@ class OverworldScene(Scene):
                   "assets/sprites/player/idle.png", walk_paths,
                   walk_dir="assets/sprites/player/walk"),
         ])
+<<<<<<< Updated upstream
+=======
+        self.menu_hint = MenuHint()
+        self.coin_counter = CoinCounter()
+>>>>>>> Stashed changes
 
 
         self.dialogue = DialogueSystem("data/dialouge.json", (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -153,4 +163,13 @@ class OverworldScene(Scene):
             # วาดเหนือหัว NPC (ใช้ฟอนต์ที่รองรับไทยเหมือนกัน)
             pass  # เติมทีหลังได้
 
+<<<<<<< Updated upstream
         self.dialogue.draw(screen)
+=======
+        self.dialogue.draw(screen)
+        if not self.menu.is_open:
+            self.menu_hint.draw(screen)
+        self.coin_counter.draw(screen, self.game.state.coins)
+        self.settings_panel.draw(screen)
+        self.menu.draw(screen)
+>>>>>>> Stashed changes

@@ -14,7 +14,15 @@ class Enemy:
         self.hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)
         self.hitbox.midbottom = self.rect.midbottom
 
+<<<<<<< Updated upstream
         self.name = name
+=======
+        data = load_enemy_data(enemy_id)
+        self.name = name or data["name"]
+        self.hp = data["hp"]
+        self.coin_reward = tuple(data["coin_reward"])
+        self.battle = data["battle"]
+>>>>>>> Stashed changes
         self.spawn = (x, y)
         self.patrol_range = patrol_range
         self.speed = speed
