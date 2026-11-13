@@ -19,6 +19,18 @@ python3 main.py
 
 Run it from the project folder, because asset and data paths are relative to it.
 
+## Building the Mac app
+
+```bash
+./build_mac.sh
+```
+
+This makes `dist/24 Game.app` and `dist/24 Game.dmg` (share the .dmg). It sets up
+its own build environment in `.build-venv/`. The app is built for the Mac you
+build on (Apple Silicon here), and it isn't notarized, so on first launch players
+need to right-click → **Open**, or allow it under **System Settings → Privacy &
+Security → Open Anyway**.
+
 ## How to play
 
 ### Overworld

@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 tempCodeRunnerFile.py
 systems/debug_skip.py
+build/
+dist/
+.build-venv/
+*.spec
