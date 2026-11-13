@@ -73,9 +73,10 @@ class Game24:
             self.op = None
 
     # Select an operator (only after a number is selected).
+    # Clicking the selected operator again unselects it.
     def click_op(self, op):
         if self.first is not None:
-            self.op = op
+            self.op = None if op == self.op else op
 
     # Numbers that have not been used up yet.
     def remaining(self):

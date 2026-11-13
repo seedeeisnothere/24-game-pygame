@@ -21,7 +21,11 @@ from entities.wreck import Wreck
 from entities.gun import GunPickup
 from types import SimpleNamespace
 from systems.dialogue import PLAYER_NAME
-from systems.debug_skip import DEBUG_SKIP_KEY, skip_to_checkpoint  # DEBUG SKIP
+# DEBUG SKIP: local-only dev file (gitignored), so the game runs without it
+try:
+    from systems.debug_skip import DEBUG_SKIP_KEY, skip_to_checkpoint
+except ImportError:
+    DEBUG_SKIP_KEY = None
 
 WRECK_POS = (400, 2868)          # crashed ship, bottom-left of map 1
 GUN_POS = (672, 2682)           # gun center, just behind the rock at tile (10, 42)
@@ -437,7 +441,7 @@ class OverworldScene(Scene):
         self.game.state.start_quest("find_fuel")
 
     def handle_events(self, events):
-        if any(e.type == pygame.KEYDOWN and e.key == DEBUG_SKIP_KEY for e in events):  # DEBUG SKIP
+        if DEBUG_SKIP_KEY and any(e.type == pygame.KEYDOWN and e.key == DEBUG_SKIP_KEY for e in events):  # DEBUG SKIP
             return skip_to_checkpoint(self)
         # No input during the crash fade or the intro walk;
         # dialogue takes all input when open.

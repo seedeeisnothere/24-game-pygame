@@ -11,6 +11,7 @@ from systems.game_state import HEAL_AMOUNT
 from systems.icons import load_icon, dimmed
 from systems.hud import CoinCounter
 from systems.gun_shot import GunShot
+from systems.battle_fx import Tackle, Beam, PlayerMotion, draw_orb
 
 COMBO_TIME = 10.0                  # seconds before the combo resets
 COMBO_MAX = 5                      # highest combo (= highest damage per solve)
@@ -42,6 +43,14 @@ def format_value(value):
 BOSS_FLOAT_HEIGHT = 10      # pixels up and down from the resting spot
 BOSS_FLOAT_TIME = 3.0       # seconds for one full up-and-down
 
+# Each boss fires its beam in its own color.
+BEAM_COLORS = {
+    "boss_forest": "#E0524A",
+    "boss_cave": "#4AA8FF",
+    "boss_final": "#B65CFF",
+}
+TACKLE_OVERLAP = 40         # how far the slime squishes into the player
+
 # Battle: solve 24 puzzles to hit the enemy, type letters to dodge attacks.
 class BattleScene(Scene):
     def __init__(self, game, enemy, overworld):
@@ -68,6 +77,18 @@ class BattleScene(Scene):
         kind = enemy.kind or ""
         self.boss_floats = kind.startswith("boss") and kind != "boss_final"
         self.boss_timer = 0.0
+
+        # Enemy attack animations: bosses fire beams, everything else tackles.
+        # strikes: attacks that have launched, as {"fx": Tackle/Beam, "dodged": bool}.
+        self.attack_style = "beam" if is_boss else "tackle"
+        self.beam_color = BEAM_COLORS.get(kind, BAD_COLOR)
+        self.strikes = []
+        # Player dodge hop, after-images and red hurt flash.
+        self.player_motion = PlayerMotion()
+        self.player_ghost_img = self.player_img.copy()
+        self.player_ghost_img.set_alpha(70)
+        self.player_hurt_img = self.player_img.copy()
+        self.player_hurt_img.fill((255, 70, 70), special_flags=pygame.BLEND_RGB_MULT)
 
         # Puzzle panel layout: target box, 2x2 number cards, 4 operator buttons.
         self.target_rect = pygame.Rect(920, 90, 320, 110)
@@ -196,7 +217,9 @@ class BattleScene(Scene):
             return
         for attack in live:
             if attack["key"] == letter:
+                # Dodged: the enemy attacks right away and the player hops clear.
                 self.attacks.remove(attack)
+                self.launch(attack, dodged=True)
                 self.show("Dodge!", GOOD_COLOR)
                 return
         # Pressing the letter of an already-failed attack does nothing.
@@ -206,8 +229,36 @@ class BattleScene(Scene):
         min(live, key=lambda a: a["left"])["failed"] = True
         self.show("Miss!", BAD_COLOR)
 
+    # Start the enemy's attack animation for this attack. Dodged attacks
+    # miss (the player hops over them); the rest hit when they land.
+    def launch(self, attack, dodged):
+        if self.attack_style == "beam":
+            fx = Beam(LANES_Y[attack["lane"]], self.beam_color)
+        else:
+            reach = self.player_pos[0] + self.player_img.get_width() - TACKLE_OVERLAP
+            fx = Tackle(self.enemy_pos[0] - reach)
+        self.strikes.append({"fx": fx, "dodged": dodged})
+        if dodged:
+            self.player_motion.dodge()
+
+    # Advance the attack animations; undodged ones hurt when they land.
+    def update_strikes(self, dt):
+        for strike in list(self.strikes):
+            if strike["fx"].update(dt) == "impact" and not strike["dodged"] and not self.result:
+                self.take_hit()
+            if strike["fx"].done:
+                self.strikes.remove(strike)
+
+    # The tackle that is moving the enemy right now (the newest one), if any.
+    def current_tackle(self):
+        for strike in reversed(self.strikes):
+            if isinstance(strike["fx"], Tackle):
+                return strike["fx"]
+        return None
+
     # An attack reached the player.
     def take_hit(self):
+        self.player_motion.hurt()
         self.player_hp -= 1
         self.show("Hit!", BAD_COLOR)
         if self.player_hp <= 0:
@@ -309,6 +360,10 @@ class BattleScene(Scene):
             self.game.play_sfx("hit")
             self.shown_enemy_hp = self.enemy_hp
 
+        # Attack and dodge animations also finish playing after the battle ends.
+        self.player_motion.update(dt)
+        self.update_strikes(dt)
+
         # Battle over: wait for the result timer, then leave once.
         if self.result:
             self.result_timer -= dt
@@ -336,14 +391,14 @@ class BattleScene(Scene):
             self.wave_delays.pop(0)
             self.spawn_attack()
 
+        # Timer ran out (not dodged in time, or a wrong letter was pressed):
+        # the enemy launches the attack and it will hit when it lands.
         # Iterate over a copy because we remove attacks inside the loop.
         for attack in list(self.attacks):
             attack["left"] -= dt
             if attack["left"] <= 0:
                 self.attacks.remove(attack)
-                self.take_hit()
-                if self.result:
-                    break
+                self.launch(attack, dodged=False)
 
     # Helper: render text and place it using a rect anchor like center=(x, y).
     def text(self, screen, font, string_, color, **anchor):
@@ -366,6 +421,53 @@ class BattleScene(Scene):
         pygame.draw.rect(screen, GOOD_COLOR, fill)
         pygame.draw.rect(screen, TEXT_COLOR, bar, 2)
 
+    # Player: after-images while dodging, then the player, then a red hurt flash.
+    def draw_player(self, screen):
+        x, y = self.player_pos
+        for dx, dy in self.player_motion.ghost_offsets():
+            screen.blit(self.player_ghost_img, (x + dx, y + dy))
+        dx, dy = self.player_motion.offset()
+        screen.blit(self.player_img, (x + dx, y + dy))
+        flash = self.player_motion.hurt_flash()
+        if flash > 0:
+            self.player_hurt_img.set_alpha(round(200 * flash))
+            screen.blit(self.player_hurt_img, (x + dx, y + dy))
+
+    # Enemy: tackle lunge + squash, beam recoil, a nervous wobble when a slime
+    # is about to tackle, and the gun's hit shake/flash. Returns the left x.
+    def draw_enemy(self, screen, bob):
+        img, flash_img = self.enemy_img, self.enemy_flash_img
+        x, y = self.enemy_pos[0], self.enemy_pos[1] + bob
+        tackle = self.current_tackle()
+        if tackle:
+            dx, dy = tackle.offset()
+            x, y = x + dx, y + dy
+            sx, sy = tackle.squash()
+            if (sx, sy) != (1.0, 1.0):
+                # Squash around the bottom middle so the slime stays on the floor.
+                w, h = img.get_size()
+                size = (round(w * sx), round(h * sy))
+                img = pygame.transform.scale(img, size)
+                flash_img = pygame.transform.scale(flash_img, size)
+                x += (w - size[0]) // 2
+                y += h - size[1]
+        for strike in self.strikes:
+            if isinstance(strike["fx"], Beam):
+                x += strike["fx"].recoil()
+        if self.attack_style == "tackle" and not tackle and self.attacks and not self.result:
+            # Gets twitchier as the attack timer runs out.
+            urgency = 1 - min(a["left"] for a in self.attacks) / self.dodge_time
+            if urgency > 0.5:
+                x += math.sin(self.boss_timer * 50) * 6 * (urgency - 0.5) * 2
+        shake_x, shake_y = self.gun.enemy_shake()
+        at = (round(x + shake_x), round(y + shake_y))
+        screen.blit(img, at)
+        flash = self.gun.enemy_flash()
+        if flash > 0:
+            flash_img.set_alpha(round(220 * flash))
+            screen.blit(flash_img, at)
+        return round(x)
+
     def draw(self, screen):
         screen.fill(TITLE_BG_COLOR)
         pygame.draw.line(screen, SLIDER_TRACK_COLOR, (PANEL_X, 30), (PANEL_X, SCREEN_HEIGHT - 30), 3)
@@ -381,17 +483,11 @@ class BattleScene(Scene):
         pygame.draw.rect(screen, BUTTON_COLOR, bar, 3)
 
         # Fighters, HP bars and names (96 = half the sprite width).
-        screen.blit(self.player_img, self.player_pos)
+        self.draw_player(screen)
         bob = 0
         if self.boss_floats:
             bob = round(math.sin(self.boss_timer / BOSS_FLOAT_TIME * math.tau) * BOSS_FLOAT_HEIGHT)
-        shake_x, shake_y = self.gun.enemy_shake()
-        enemy_at = (self.enemy_pos[0] + shake_x, self.enemy_pos[1] + bob + shake_y)
-        screen.blit(self.enemy_img, enemy_at)
-        flash = self.gun.enemy_flash()
-        if flash > 0:
-            self.enemy_flash_img.set_alpha(round(220 * flash))
-            screen.blit(self.enemy_flash_img, enemy_at)
+        enemy_x = self.draw_enemy(screen, bob)
         self.draw_hp_bar(screen, self.player_pos[0], self.player_pos[1] - 30,
                          self.player_hp, self.player_max_hp)
         self.draw_hp_bar(screen, 590, self.enemy_pos[1] - 30,
@@ -405,14 +501,20 @@ class BattleScene(Scene):
             self.text(screen, self.small_font, f"+{self.coins_earned} coins", TEXT_COLOR,
                       center=(440, 460))
 
+        # Beams fly in front of both fighters.
+        beam_x = enemy_x + 20
+        for strike in self.strikes:
+            if isinstance(strike["fx"], Beam):
+                strike["fx"].draw(screen, beam_x, bob)
+
         for attack in self.attacks:
             lane = attack["lane"]
-            # Ball moves from the enemy to the player's right edge over dodge_time.
-            progress = 1 - attack["left"] / self.dodge_time
-            start_x = self.enemy_pos[0]
-            end_x = self.player_pos[0] + 192
-            x = start_x + (end_x - start_x) * progress
-            pygame.draw.circle(screen, BAD_COLOR, (int(x), LANES_Y[lane]), 16)
+            # Bosses charge an orb for each waiting attack; it grows until it fires.
+            if self.attack_style == "beam":
+                progress = 1 - attack["left"] / self.dodge_time
+                pulse = 1 + 0.12 * math.sin(self.boss_timer * 18)
+                draw_orb(screen, self.beam_color, (beam_x, LANES_Y[lane] + bob),
+                         (5 + 9 * progress) * pulse)
 
             # Letter bubble above the player; lane 0/1/2 = left/middle/right.
             center = (self.player_pos[0] + 96 + (lane - 1) * 110, 250)

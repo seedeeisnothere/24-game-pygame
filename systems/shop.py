@@ -76,9 +76,9 @@ class ShopMenu:
         # Dark see-through layer behind the panel
         self.dim = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.dim.fill((0, 0, 0, 170))
-        self.panel = pygame.Rect(140, 80, 1000, 640)
-        # One clickable row per item, stacked 74 px apart
-        self.row_rects = [pygame.Rect(180, 175 + i * 74, 920, 68) for i in range(MAX_ROWS)]
+        self.panel = pygame.Rect(140, 30, 1000, 740)
+        # One clickable row per item, stacked 96 px apart (tall enough for 2 desc lines)
+        self.row_rects = [pygame.Rect(180, 140 + i * 96, 920, 90) for i in range(MAX_ROWS)]
         self.coin_icon = load_icon(COIN_ICON_PATH, 32)
         self.consumable_icons = {item_id: load_icon(info["icon"], 44)
                                  for item_id, info in CONSUMABLES.items()}
@@ -146,10 +146,10 @@ class ShopMenu:
         screen.blit(self.dim, (0, 0))
         pygame.draw.rect(screen, PANEL_COLOR, self.panel, border_radius=BUTTON_RADIUS)
         pygame.draw.rect(screen, BUTTON_COLOR, self.panel, width=5, border_radius=BUTTON_RADIUS)
-        self.text(screen, self.big_font, self.shop.title, TEXT_COLOR, topleft=(180, 110))
+        self.text(screen, self.big_font, self.shop.title, TEXT_COLOR, topleft=(180, 60))
 
         # Player's coins in the top-right of the panel
-        coin_rect = self.coin_icon.get_rect(topright=(1100, 124))
+        coin_rect = self.coin_icon.get_rect(topright=(1100, 74))
         screen.blit(self.coin_icon, coin_rect)
         self.text(screen, self.small_font, str(state.coins), TEXT_COLOR,
                   midright=(coin_rect.left - 10, coin_rect.centery))
@@ -176,8 +176,12 @@ class ShopMenu:
                 info_name = info["name"]
 
             name_color = DIM_COLOR if sold_out else TEXT_COLOR
-            self.text(screen, self.small_font, info_name, name_color, topleft=(text_x, rect.y + 4))
-            self.text(screen, self.tiny_font, info["desc"], DIM_COLOR, topleft=(text_x, rect.y + 38))
+            # Desc can have a "\n" for a second line, so shift up to make room
+            desc_lines = [line.strip() for line in info["desc"].split("\n")]
+            top = rect.y + (6 if len(desc_lines) > 1 else 16)
+            self.text(screen, self.small_font, info_name, name_color, topleft=(text_x, top))
+            for n, line in enumerate(desc_lines):
+                self.text(screen, self.tiny_font, line, DIM_COLOR, topleft=(text_x, top + 32 + n * 21))
 
             # Right side: "Owned" or the price (red if too expensive)
             if sold_out:
@@ -190,7 +194,9 @@ class ShopMenu:
                 self.text(screen, self.small_font, str(entry["price"]), price_color,
                           midright=(icon_rect.left - 10, rect.centery))
 
+        # The message takes the hint's place while it's showing
         if self.message_timer > 0:
-            self.text(screen, self.small_font, self.message, self.message_color, midbottom=(640, 655))
-        self.text(screen, self.tiny_font, "Click item = buy     E / Space / Esc = leave",
-                  DIM_COLOR, midbottom=(640, 700))
+            self.text(screen, self.small_font, self.message, self.message_color, center=(640, 740))
+        else:
+            self.text(screen, self.tiny_font, "Click item = buy     E / Space / Esc = leave",
+                      DIM_COLOR, center=(640, 740))

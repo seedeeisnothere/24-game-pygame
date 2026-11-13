@@ -1,4 +1,6 @@
 __pycache__/
 .DS_Store
 .venv/
-*.pyctempCodeRunnerFile.py
+*.pyc
+tempCodeRunnerFile.py
+systems/debug_skip.py

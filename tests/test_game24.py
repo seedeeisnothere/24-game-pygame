@@ -43,6 +43,17 @@ class TestGame24(unittest.TestCase):
         self.assertEqual(game.values[2], Fraction(1))
         self.assertEqual(game.values[1], Fraction(0))
 
+    # Clicking the selected operator again unselects it; another one switches
+    def test_click_same_op_unselects(self):
+        game = Game24([1, 2, 3, 4])
+        game.click_number(0)
+        game.click_op("+")
+        game.click_op("+")
+        self.assertIsNone(game.op)
+        game.click_op("+")
+        game.click_op("*")
+        self.assertEqual(game.op, "*")
+
     # Every puzzle in data/puzzles.json has a solution
     def test_every_bank_puzzle_is_solvable(self):
         for numbers in load_puzzles():

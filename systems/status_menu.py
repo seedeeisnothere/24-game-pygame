@@ -127,6 +127,7 @@ class StatusMenu:
             for n, line in enumerate(lines):
                 self.text(screen, self.tiny_font, line, TEXT_COLOR, center=(rect.centerx, top + 14 + n * 28))
 
+        hover_desc = None
         self.text(screen, self.small_font, "Items", TEXT_COLOR, topleft=(680, 200))
         if not inventory.owned:
             self.text(screen, self.tiny_font, "No items yet", DIM_COLOR, topleft=(680, 260))
@@ -137,12 +138,18 @@ class StatusMenu:
             self.draw_box(screen, rect, BUTTON_HOVER_COLOR if hovered else BUTTON_COLOR)
             name_color = DIM_COLOR if equipped else TEXT_COLOR
             self.text(screen, self.small_font, item["name"], name_color, topleft=(rect.x + 16, rect.y + 8))
-            self.text(screen, self.tiny_font, item["desc"], DIM_COLOR, topleft=(rect.x + 16, rect.y + 50))
+            # The row only fits the last desc line (the effect); hover shows the rest below
+            desc_lines = [line.strip() for line in item["desc"].split("\n")]
+            self.text(screen, self.tiny_font, desc_lines[-1], DIM_COLOR, topleft=(rect.x + 16, rect.y + 50))
+            if hovered and len(desc_lines) > 1:
+                hover_desc = " ".join(desc_lines[:-1])
             if equipped:
                 self.text(screen, self.tiny_font, "Equipped", BUTTON_HOVER_COLOR,
                           midright=(rect.right - 16, rect.y + 24))
 
         if self.message_timer > 0:
             self.text(screen, self.small_font, self.message, "#E0524A", midbottom=(640, 655))
+        elif hover_desc:
+            self.text(screen, self.tiny_font, hover_desc, TEXT_COLOR, midbottom=(640, 655))
         self.text(screen, self.tiny_font, "Click item = equip / remove     Click slot = remove     Space = close",
                   DIM_COLOR, midbottom=(640, 700))

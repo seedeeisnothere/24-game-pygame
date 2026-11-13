@@ -1,8 +1,8 @@
 {
   "items": [
-    {"id": "sharp_blade", "name": "Sharp Blade", "desc": "+1 base damage", "effects": {"damage": 1}},
-    {"id": "heavy_axe",   "name": "Heavy Axe",   "desc": "+2 base damage", "effects": {"damage": 2}},
-    {"id": "heart_charm", "name": "Heart Charm", "desc": "+2 max HP",      "effects": {"max_hp": 2}},
-    {"id": "iron_armor",  "name": "Iron Armor",  "desc": "+4 max HP",      "effects": {"max_hp": 4}}
+    {"id": "normal_bracelet",   "name": "Normal Bracelet", "desc": "Just for moral support \nEffect : +1 base damage", "effects": {"damage": 1}},
+    {"id": "strength_bracelet", "name": "Heavy Axe",       "desc": "May the force be with you \nEffect : +2 base damage", "effects": {"damage": 2}},
+    {"id": "normal_charm",      "name": "Normal Charm",    "desc": "Its mysterious force makes you feel tougher \nEffect : +5 max HP", "effects": {"max_hp": 5}},
+    {"id": "heart_charm",       "name": "Heart Charm",     "desc": "Its mysterious force makes you feel even tougher \nEffect : +10 max HP", "effects": {"max_hp": 10}}
   ]
 }

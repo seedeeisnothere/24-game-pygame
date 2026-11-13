@@ -8,7 +8,7 @@ import pygame
 DEBUG_SKIP_KEY = pygame.K_F9
 
 # Where F9 goes right now. Change it to any name in CHECKPOINTS below.
-CHECKPOINT = "ship_repair"
+CHECKPOINT = "boss_cutscene"
 
 # name: (what's done already, where you stand, what to do next)
 #   boss_cutscene  slimes killed (5/5)            next to the headman  -> talk to him
