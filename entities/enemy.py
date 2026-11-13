@@ -1,12 +1,21 @@
+import glob
 import json
+import os
 import math
 import random
 import pygame
 from settings import HITBOX_WIDTH, HITBOX_HEIGHT, FONT_PATH
 from systems.tilemap import touches_solid
-from entities.player import AnimatedSprite
 
 ENEMY_DATA_PATH = "data/enemies.json"
+
+SLIME_SHEET_PATH = "assets/sprites/slime/slime.png"
+SLIME_FRAME = 32                    # each cell on the sheet is 32 x 32
+SLIME_COLORS = ("Blue", "Green", "Red")   # one sheet row per color
+SLIME_FRAMES = 6                    # frames per row (one full hop)
+# Every frame's slime fits inside this part of its cell, so we crop the
+# empty space above it (keeps the name tag and hitbox right on the body).
+SLIME_CROP = pygame.Rect(7, 18, 18, 14)
 
 
 # Read one enemy's stats (name, hp, rewards, battle settings) from JSON.
@@ -15,14 +24,98 @@ def load_enemy_data(enemy_id, path=ENEMY_DATA_PATH):
         return json.load(file)["enemies"][enemy_id]
 
 
+# Slime animation cut from the sprite sheet. Works like the player's AnimatedSprite
+# (same attributes/methods) so Enemy can use either one.
+class SlimeSprite:
+    def __init__(self, color=None, scale=4, battle_scale=10, frame_duration_ms=110):
+        sheet = pygame.image.load(SLIME_SHEET_PATH).convert_alpha()
+        if color is None:
+            color = random.choice(SLIME_COLORS)
+        self.color = color
+        row = SLIME_COLORS.index(color)
+
+        frames = []
+        for col in range(SLIME_FRAMES):
+            crop = SLIME_CROP.move(col * SLIME_FRAME, row * SLIME_FRAME)
+            frames.append(sheet.subsurface(crop).copy())
+        size = (SLIME_CROP.width * scale, SLIME_CROP.height * scale)
+        self.size = size
+
+        # Whole-number scaling keeps the pixel art crisp
+        self.walk_right = [pygame.transform.scale(f, size) for f in frames]
+        self.walk_left = [pygame.transform.flip(f, True, False) for f in self.walk_right]
+        self.idle_right = self.walk_right[0]
+        self.idle_left = self.walk_left[0]
+        # Big left-facing copy for the battle screen
+        big = (SLIME_CROP.width * battle_scale, SLIME_CROP.height * battle_scale)
+        self.battle_image = pygame.transform.flip(
+            pygame.transform.scale(frames[0], big), True, False)
+
+        self.frame_duration = frame_duration_ms / 1000
+        self.frame_index = 0
+        self.timer = 0.0
+        self.moving = False
+        self.facing_right = True
+
+    # Advance the hop animation using the frame time dt.
+    def update(self, dt):
+        if not self.moving:
+            self.frame_index = 0
+            self.timer = 0.0
+            return
+        self.timer += dt
+        if self.timer >= self.frame_duration:
+            self.timer -= self.frame_duration
+            self.frame_index = (self.frame_index + 1) % len(self.walk_right)
+
+    def get_image(self):
+        if self.moving:
+            frames = self.walk_right if self.facing_right else self.walk_left
+            return frames[self.frame_index]
+        return self.idle_right if self.facing_right else self.idle_left
+
+
+# Boss animation from a folder of numbered frames (frame_01.png, frame_02.png...).
+# The monsters float, so the animation always loops, even when standing still.
+# They face the camera, so there are no left/right versions.
+class MonsterSprite:
+    def __init__(self, folder, scale=2, battle_scale=5, frame_duration_ms=100):
+        paths = sorted(glob.glob(os.path.join(folder, "frame_*.png")))
+        if not paths:
+            raise FileNotFoundError(f"no frame_*.png in {folder}")
+        frames = [pygame.image.load(p).convert_alpha() for p in paths]
+        w, h = frames[0].get_size()
+        # Whole-number scaling keeps the pixel art crisp
+        self.frames = [pygame.transform.scale(f, (w * scale, h * scale)) for f in frames]
+        self.idle_right = self.idle_left = self.frames[0]
+        self.battle_image = pygame.transform.scale(frames[0], (w * battle_scale, h * battle_scale))
+
+        self.frame_duration = frame_duration_ms / 1000
+        self.frame_index = 0
+        self.timer = 0.0
+        self.moving = False         # kept so Enemy can set it; not used
+        self.facing_right = True
+
+    def update(self, dt):
+        self.timer += dt
+        if self.timer >= self.frame_duration:
+            self.timer -= self.frame_duration
+            self.frame_index = (self.frame_index + 1) % len(self.frames)
+
+    def get_image(self):
+        return self.frames[self.frame_index]
+
+
 # An overworld enemy that patrols, notices the player, and chases them.
 # States: "patrol" -> "alert" -> "chase" -> "return" (back to spawn).
 class Enemy:
-    def __init__(self, x, y, idle_path, walk_paths, walk_dir, size=(64, 87),
-                 patrol_range=150, speed=2, chase_speed=3,
+    # `sprite` is a SlimeSprite or MonsterSprite (anything with idle_right etc.).
+    def __init__(self, x, y, sprite, patrol_range=150, speed=2, chase_speed=3,
                  detect_radius=200, lose_radius=400, alert_time=0.5,
-                 name=None, enemy_id="enemy_1"):
-        self.sprite = AnimatedSprite(idle_path, walk_paths, size=size, walk_dir=walk_dir)
+                 name=None, enemy_id="enemy_1", kind=None):
+        size = sprite.idle_right.get_size()
+        self.sprite = sprite
+        self.kind = kind            # e.g. "slime"; quests count kills by kind
         self.rect = pygame.Rect(x, y, *size)
         # Small hitbox at the feet, used for wall collision
         self.hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)
@@ -33,6 +126,10 @@ class Enemy:
         self.hp = data["hp"]
         self.coin_reward = tuple(data["coin_reward"])
         self.battle = data["battle"]
+        self.enemy_id = enemy_id
+        # Optional story lines before the first fight / after winning it
+        self.intro_dialogue = data.get("intro_dialogue")
+        self.outro_dialogue = data.get("outro_dialogue")
         self.spawn = (x, y)
         self.patrol_range = patrol_range
         self.speed = speed
@@ -190,6 +287,12 @@ class EnemyEncounter:
                 return enemy
         return None
 
+    # Keep the animations going while the enemies are frozen (dialogue, shop).
+    def animate(self, dt):
+        for enemy in self.enemies:
+            if not enemy.defeated:
+                enemy.sprite.update(dt)
+
     def draw(self, screen, cam_x, cam_y):
         for enemy in self.enemies:
             enemy.draw(screen, cam_x, cam_y)
@@ -225,10 +328,14 @@ class EnemySpawner:
         for _ in range(count * 30):
             if len(self.wave) == count:
                 break
-            # 64 x 87 is the enemy sprite size, keeps it inside the zone
-            x = self.rng.randint(self.zone.left, self.zone.right - 64)
-            y = self.rng.randint(self.zone.top, self.zone.bottom - 87)
-            enemy = self.make_enemy(x, y)
+            # Make the enemy first so we know its size, then keep it inside the zone
+            enemy = self.make_enemy(self.zone.left, self.zone.top)
+            w, h = enemy.rect.size
+            x = self.rng.randint(self.zone.left, self.zone.right - w)
+            y = self.rng.randint(self.zone.top, self.zone.bottom - h)
+            enemy.rect.topleft = (x, y)
+            enemy.spawn = (x, y)
+            enemy.hitbox.midbottom = enemy.rect.midbottom
             if touches_solid(enemy.hitbox, self.solid):
                 continue
             # Skip spots too close to an enemy already in this wave

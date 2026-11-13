@@ -2,6 +2,7 @@ import math
 import random
 import string
 import pygame
+from systems.dialogue import PLAYER_NAME
 from settings import *
 from scenes.scene import Scene
 from logic.game24 import Game24, OPS
@@ -9,6 +10,7 @@ from logic.puzzle_bank import load_puzzles, random_puzzle
 from systems.game_state import HEAL_AMOUNT
 from systems.icons import load_icon, dimmed
 from systems.hud import CoinCounter
+from systems.gun_shot import GunShot
 
 COMBO_TIME = 10.0                  # seconds before the combo resets
 COMBO_MAX = 5                      # highest combo (= highest damage per solve)
@@ -16,6 +18,7 @@ LANES_Y = (400, 470, 540)          # y position of each attack lane
 RESULT_TIME = 1.5                  # seconds to show VICTORY/DEFEATED
 PANEL_X = 880                      # x of the line between fight and puzzle
 HEAL_RECT = pygame.Rect(40, 700, 90, 90)
+SKIP_RECT = pygame.Rect(190, 700, 90, 90)
 
 OP_LABELS = {"+": "+", "-": "-", "*": "x", "/": "/"}
 
@@ -34,21 +37,37 @@ def format_value(value):
     return f"{value.numerator}/{value.denominator}"
 
 
+# Bosses float slowly up and down in battle (not the final boss), like the
+# title planet (10 px, 4 s) but a little faster.
+BOSS_FLOAT_HEIGHT = 10      # pixels up and down from the resting spot
+BOSS_FLOAT_TIME = 3.0       # seconds for one full up-and-down
+
 # Battle: solve 24 puzzles to hit the enemy, type letters to dodge attacks.
 class BattleScene(Scene):
     def __init__(self, game, enemy, overworld):
         super().__init__(game)
         self.enemy = enemy
         self.overworld = overworld
+        is_boss = (enemy.kind or "").startswith("boss")
+        self.music = "boss" if is_boss else "battle"
 
         self.big_font = pygame.font.Font(FONT_PATH, BUTTON_FONT_SIZE)
         self.small_font = pygame.font.Font(FONT_PATH, SMALL_FONT_SIZE)
 
         # Big copies of the overworld sprites, facing each other.
         self.player_img = pygame.transform.scale(overworld.sprite.idle_right, (192, 261))
-        self.enemy_img = pygame.transform.scale(enemy.sprite.idle_left, (192, 261))
+        # Slimes bring their own crisp big image; others get stretched like the player.
+        self.enemy_img = getattr(enemy.sprite, "battle_image", None)
+        if self.enemy_img is None:
+            self.enemy_img = pygame.transform.scale(enemy.sprite.idle_left, (192, 261))
         self.player_pos = (120, 330)
-        self.enemy_pos = (590, 330)
+        # Stand on the same floor line as the player, centered in a 192px slot.
+        self.enemy_pos = (590 + (192 - self.enemy_img.get_width()) // 2,
+                          330 + 261 - self.enemy_img.get_height())
+        # Floating bosses: every boss except the final one (Jenny).
+        kind = enemy.kind or ""
+        self.boss_floats = kind.startswith("boss") and kind != "boss_final"
+        self.boss_timer = 0.0
 
         # Puzzle panel layout: target box, 2x2 number cards, 4 operator buttons.
         self.target_rect = pygame.Rect(920, 90, 320, 110)
@@ -99,8 +118,20 @@ class BattleScene(Scene):
         self.player_hp = game.state.hp
         self.heal_icon = load_icon(POTION_ICON_PATH, 48)
         self.heal_icon_dim = dimmed(self.heal_icon)
+        self.skip_icon = load_icon(SKIP_ICON_PATH, 40)
+        self.skip_icon_dim = dimmed(self.skip_icon)
         self.coins_earned = 0
         self.coin_counter = CoinCounter()
+
+        # Quickdraw: the gun comes out of the player's hip and shoots the enemy.
+        # The enemy HP bar only drops when the bullet lands (shown_enemy_hp).
+        enemy_rect = self.enemy_img.get_rect(topleft=self.enemy_pos)
+        self.gun = GunShot(hip=(self.player_pos[0] + 150, self.player_pos[1] + 182),
+                           aim=(self.player_pos[0] + 200, self.player_pos[1] + 130),
+                           enemy_rect=enemy_rect)
+        self.shown_enemy_hp = self.enemy_hp
+        self.enemy_flash_img = self.enemy_img.copy()
+        self.enemy_flash_img.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
 
     def handle_events(self, events):
         for event in events:
@@ -112,6 +143,8 @@ class BattleScene(Scene):
                     self.finish("flee")
                 elif event.scancode == pygame.KSCAN_Q:
                     self.use_potion()
+                elif event.scancode == pygame.KSCAN_E:
+                    self.use_skip()
                 else:
                     self.press_letter(event.scancode)
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -145,7 +178,10 @@ class BattleScene(Scene):
         self.combo = min(self.combo + 1, COMBO_MAX)
         self.combo_timer = COMBO_TIME
         damage = self.combo + self.game.state.damage_bonus
+        # A new shot before the last bullet landed: catch the HP bar up first.
+        self.shown_enemy_hp = self.enemy_hp
         self.enemy_hp -= damage
+        self.gun.start()
         self.show(f"-{damage}", GOOD_COLOR)
         self.numbers = random_puzzle(self.puzzles, last=self.numbers)
         self.puzzle = Game24(self.numbers)
@@ -175,6 +211,7 @@ class BattleScene(Scene):
         self.player_hp -= 1
         self.show("Hit!", BAD_COLOR)
         if self.player_hp <= 0:
+            self.game.play_sfx("death")
             self.finish("lose")
 
     # Drink a potion (Q key) if we have one and are not at full HP.
@@ -190,6 +227,17 @@ class BattleScene(Scene):
         healed = min(HEAL_AMOUNT, self.player_max_hp - self.player_hp)
         self.player_hp += healed
         self.show(f"+{healed}", GOOD_COLOR)
+
+    # Use a skip ticket (E key): swap the puzzle for a new one, no damage dealt.
+    def use_skip(self):
+        state = self.game.state
+        if state.skips <= 0:
+            self.show("No skip", BAD_COLOR)
+            return
+        state.skips -= 1
+        self.numbers = random_puzzle(self.puzzles, last=self.numbers)
+        self.puzzle = Game24(self.numbers)
+        self.show("Skipped!", GOOD_COLOR)
 
     # Plan a wave: a list of delays, one per attack, spaced randomly.
     def start_wave(self):
@@ -220,11 +268,14 @@ class BattleScene(Scene):
     # End the battle, save HP and give rewards or stun the enemy.
     def finish(self, result):
         self.result = result
+        # The overworld reads this when we return (story lines after a boss, etc.)
+        self.overworld.battle_result = (self.enemy, result)
         self.game.state.set_hp(self.player_hp)
         self.attacks = []
         self.wave_delays = []
         if result == "win":
             self.enemy.defeated = True
+            self.game.state.record_kill(self.enemy.kind)
             self.coins_earned = random.randint(*self.enemy.coin_reward)
             self.game.state.add_coins(self.coins_earned)
             self.result_timer = RESULT_TIME
@@ -247,6 +298,17 @@ class BattleScene(Scene):
         self.leaving = True
 
     def update(self, dt):
+        # Boss float keeps going, even after the battle ends.
+        self.boss_timer += dt
+
+        # The gun animation also keeps going, so the winning shot still lands.
+        gun_event = self.gun.update(dt)
+        if gun_event == "fire":
+            self.game.play_sfx("shoot")
+        elif gun_event == "hit":
+            self.game.play_sfx("hit")
+            self.shown_enemy_hp = self.enemy_hp
+
         # Battle over: wait for the result timer, then leave once.
         if self.result:
             self.result_timer -= dt
@@ -320,15 +382,24 @@ class BattleScene(Scene):
 
         # Fighters, HP bars and names (96 = half the sprite width).
         screen.blit(self.player_img, self.player_pos)
-        screen.blit(self.enemy_img, self.enemy_pos)
+        bob = 0
+        if self.boss_floats:
+            bob = round(math.sin(self.boss_timer / BOSS_FLOAT_TIME * math.tau) * BOSS_FLOAT_HEIGHT)
+        shake_x, shake_y = self.gun.enemy_shake()
+        enemy_at = (self.enemy_pos[0] + shake_x, self.enemy_pos[1] + bob + shake_y)
+        screen.blit(self.enemy_img, enemy_at)
+        flash = self.gun.enemy_flash()
+        if flash > 0:
+            self.enemy_flash_img.set_alpha(round(220 * flash))
+            screen.blit(self.enemy_flash_img, enemy_at)
         self.draw_hp_bar(screen, self.player_pos[0], self.player_pos[1] - 30,
                          self.player_hp, self.player_max_hp)
-        self.draw_hp_bar(screen, self.enemy_pos[0], self.enemy_pos[1] - 30,
-                         self.enemy_hp, self.enemy_max_hp)
-        self.text(screen, self.small_font, "Player", TEXT_COLOR,
+        self.draw_hp_bar(screen, 590, self.enemy_pos[1] - 30,
+                         self.shown_enemy_hp, self.enemy_max_hp)
+        self.text(screen, self.small_font, PLAYER_NAME, TEXT_COLOR,
                   midtop=(self.player_pos[0] + 96, 610))
         self.text(screen, self.small_font, self.enemy.name, TEXT_COLOR,
-                  midtop=(self.enemy_pos[0] + 96, 610))
+                  midtop=(590 + 96, 610))
 
         if self.result == "win":
             self.text(screen, self.small_font, f"+{self.coins_earned} coins", TEXT_COLOR,
@@ -357,6 +428,8 @@ class BattleScene(Scene):
                 self.text(screen, self.big_font, "X", BAD_COLOR, center=center)
             else:
                 self.text(screen, self.big_font, attack["key"], TEXT_COLOR, center=center)
+
+        self.gun.draw(screen)
 
         if self.message_timer > 0:
             self.text(screen, self.big_font, self.message, self.message_color, center=(440, 200))
@@ -391,6 +464,16 @@ class BattleScene(Scene):
                   midbottom=(HEAL_RECT.centerx, HEAL_RECT.bottom - 4))
         self.text(screen, self.small_font, "Q", TEXT_COLOR,
                   midleft=(HEAL_RECT.right + 12, HEAL_RECT.centery))
+
+        # Skip button: greyed out when we have no tickets.
+        skips = self.game.state.skips
+        self.draw_box(screen, SKIP_RECT, BUTTON_COLOR if skips > 0 else FAILED_COLOR)
+        icon = self.skip_icon if skips > 0 else self.skip_icon_dim
+        screen.blit(icon, icon.get_rect(center=(SKIP_RECT.centerx, SKIP_RECT.top + 32)))
+        self.text(screen, self.small_font, f"x{skips}", TEXT_COLOR,
+                  midbottom=(SKIP_RECT.centerx, SKIP_RECT.bottom - 4))
+        self.text(screen, self.small_font, "E", TEXT_COLOR,
+                  midleft=(SKIP_RECT.right + 12, SKIP_RECT.centery))
 
         if self.result in ("win", "lose"):
             overlay_text = "VICTORY" if self.result == "win" else "DEFEATED"

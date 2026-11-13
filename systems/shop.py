@@ -4,14 +4,19 @@ from settings import *
 from systems.icons import load_icon
 
 SHOP_PATH = "data/shop.json"
-POTION_ID = "potion"
-# Potions are not in the inventory item list, so their info lives here
-POTION_INFO = {"name": "Heal Potion", "desc": "Use in battle to heal"}
+# Consumables are not in the inventory item list. They're kept as a count on
+# the game state (e.g. state.potions) and never sell out.
+CONSUMABLES = {
+    "potion": {"name": "Heal Potion", "desc": "Use in battle to heal",
+               "count": "potions", "icon": POTION_ICON_PATH},
+    "skip": {"name": "Skip Ticket", "desc": "Use in battle to skip a 24 puzzle",
+             "count": "skips", "icon": SKIP_ICON_PATH},
+}
 
 DIM_COLOR = "#5A6480"
 ERROR_COLOR = "#E0524A"
 OK_COLOR = "#6FCF6F"
-MAX_ROWS = 5
+MAX_ROWS = 6
 
 
 # Load all shops as {shop_id: {"title": ..., "stock": [...]}}
@@ -29,13 +34,13 @@ class Shop:
 
     # Get the name and description of a stock entry
     def info(self, state, entry):
-        if entry["item"] == POTION_ID:
-            return POTION_INFO
+        if entry["item"] in CONSUMABLES:
+            return CONSUMABLES[entry["item"]]
         return state.inventory.items[entry["item"]]
 
-    # Equipment can be bought once; potions can be bought forever
+    # Equipment can be bought once; consumables can be bought forever
     def is_sold_out(self, state, entry):
-        return entry["item"] != POTION_ID and entry["item"] in state.inventory.owned
+        return entry["item"] not in CONSUMABLES and entry["item"] in state.inventory.owned
 
     # Try to buy an entry; returns "bought", "owned" or "no_coins"
     def buy(self, state, entry):
@@ -43,8 +48,10 @@ class Shop:
             return "owned"
         if not state.spend_coins(entry["price"]):
             return "no_coins"
-        if entry["item"] == POTION_ID:
-            state.potions += 1
+        consumable = CONSUMABLES.get(entry["item"])
+        if consumable:
+            count = consumable["count"]
+            setattr(state, count, getattr(state, count) + 1)
         else:
             state.inventory.add(entry["item"])
         return "bought"
@@ -70,10 +77,11 @@ class ShopMenu:
         self.dim = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.dim.fill((0, 0, 0, 170))
         self.panel = pygame.Rect(140, 80, 1000, 640)
-        # One clickable row per item, stacked 86 px apart
-        self.row_rects = [pygame.Rect(180, 190 + i * 86, 920, 76) for i in range(MAX_ROWS)]
+        # One clickable row per item, stacked 74 px apart
+        self.row_rects = [pygame.Rect(180, 175 + i * 74, 920, 68) for i in range(MAX_ROWS)]
         self.coin_icon = load_icon(COIN_ICON_PATH, 32)
-        self.potion_icon = load_icon(POTION_ICON_PATH, 48)
+        self.consumable_icons = {item_id: load_icon(info["icon"], 44)
+                                 for item_id, info in CONSUMABLES.items()}
 
     # Open the shop with the given id from shop.json
     def open(self, shop_id):
@@ -109,7 +117,9 @@ class ShopMenu:
             name = self.shop.info(state, entry)["name"]
             result = self.shop.buy(state, entry)
             if result == "bought":
-                self.game.play_sfx("select")
+                # Upgrades (equipment) get a power-up sound; potions/tickets a plain click
+                upgrade = entry["item"] not in CONSUMABLES
+                self.game.play_sfx("powerup" if upgrade else "select")
                 self.show(f"Bought {name}!", OK_COLOR)
             elif result == "owned":
                 self.show("You already own that", ERROR_COLOR)
@@ -154,18 +164,20 @@ class ShopMenu:
             pygame.draw.rect(screen, BUTTON_HOVER_COLOR if hovered else BUTTON_COLOR, rect,
                              width=4, border_radius=BUTTON_RADIUS)
 
-            # Potions get an icon and a count, so shift the text right
+            # Consumables get an icon and a count, so shift the text right
             text_x = rect.x + 20
-            if entry["item"] == POTION_ID:
-                screen.blit(self.potion_icon, self.potion_icon.get_rect(midleft=(rect.x + 16, rect.centery)))
-                text_x += self.potion_icon.get_width() + 8
-                info_name = f"{info['name']}  (have {state.potions})"
+            icon = self.consumable_icons.get(entry["item"])
+            if icon:
+                # Icons sit centred in a fixed 64 px column so the names line up
+                screen.blit(icon, icon.get_rect(center=(rect.x + 16 + 32, rect.centery)))
+                text_x += 64 + 4
+                info_name = f"{info['name']}  (have {getattr(state, info['count'])})"
             else:
                 info_name = info["name"]
 
             name_color = DIM_COLOR if sold_out else TEXT_COLOR
-            self.text(screen, self.small_font, info_name, name_color, topleft=(text_x, rect.y + 8))
-            self.text(screen, self.tiny_font, info["desc"], DIM_COLOR, topleft=(text_x, rect.y + 44))
+            self.text(screen, self.small_font, info_name, name_color, topleft=(text_x, rect.y + 4))
+            self.text(screen, self.tiny_font, info["desc"], DIM_COLOR, topleft=(text_x, rect.y + 38))
 
             # Right side: "Owned" or the price (red if too expensive)
             if sold_out:

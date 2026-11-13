@@ -12,6 +12,8 @@ from systems.crash_intro import CrashIntro
 
 # Title screen: animated planet, starfield and Start/Settings/Quit buttons.
 class TitleScene(Scene):
+    music = "title"
+
     def __init__(self, game):
         super().__init__(game)
         title_font = pygame.font.Font(FONT_PATH, TITLE_FONT_SIZE)
@@ -80,6 +82,7 @@ class TitleScene(Scene):
                 # Imported here (lazy import), only when the intro ends.
                 from scenes.overworld_scene import OverworldScene
                 self.game.scene = OverworldScene(self.game, from_crash=True)
+                self.game.play_scene_music()
             return
 
         mouse_pos = pygame.mouse.get_pos()

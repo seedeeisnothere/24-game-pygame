@@ -102,3 +102,83 @@ class CoinCounter:
         label_rect = self.label.get_rect(midleft=(icon_rect.right + COIN_GAP, icon_rect.centery))
         screen.blit(self.icon, icon_rect)
         screen.blit(self.label, label_rect)
+
+
+FUEL_COLOR = "#E8742C"
+FUEL_ROW_GAP = 6
+
+
+# "Fuel 1/3" under the coins, with a little fuel can drawn in code.
+# Hidden until the first piece of fuel.
+class FuelCounter:
+    def __init__(self, top):
+        self.font = pygame.font.Font(FONT_PATH, SMALL_FONT_SIZE)
+        self.top = top
+        size = COIN_ICON_HEIGHT
+        self.icon = pygame.Surface((size, size), pygame.SRCALPHA)
+        body = pygame.Rect(size // 6, size // 4, size * 2 // 3, size * 3 // 4)
+        pygame.draw.rect(self.icon, FUEL_COLOR, body, border_radius=3)
+        pygame.draw.rect(self.icon, "#000000", body, 2, border_radius=3)
+        cap = pygame.Rect(body.right - size // 4, 0, size // 5, size // 4 + 2)
+        pygame.draw.rect(self.icon, "#C9C9C9", cap)
+        pygame.draw.line(self.icon, "#000000", (body.x + 5, body.y + 6),
+                         (body.right - 5, body.bottom - 6), 2)
+
+    def draw(self, screen, fuel, needed):
+        if fuel <= 0:
+            return
+        icon_rect = self.icon.get_rect(topleft=(HUD_MARGIN, self.top))
+        text = f"Fuel {fuel}/{needed}"
+        label = self.font.render(text, False, TEXT_COLOR)
+        shadow = self.font.render(text, False, "#000000")
+        pos = label.get_rect(midleft=(icon_rect.right + COIN_GAP, icon_rect.centery))
+        screen.blit(self.icon, icon_rect)
+        screen.blit(shadow, pos.move(2, 2))
+        screen.blit(label, pos)
+
+
+OBJECTIVE_WIDTH = 330
+OBJECTIVE_PADDING = 14
+OBJECTIVE_DONE_COLOR = "#8A93AD"
+
+
+# Bottom-right box showing the current quest. When the goal is reached the
+# objective is greyed out and crossed out, with a hint to go turn it in.
+class ObjectiveTracker:
+    def __init__(self):
+        self.title_font = pygame.font.Font(FONT_PATH, KEY_FONT_SIZE + 4)
+        self.font = pygame.font.Font(FONT_PATH, KEY_FONT_SIZE)
+
+    def draw(self, screen, quest):
+        if quest is None:
+            return
+        rows = []   # (surface, strike through?)
+        color = OBJECTIVE_DONE_COLOR if quest.complete else TEXT_COLOR
+        text = quest.text
+        if quest.goal > 1:
+            text += f" ({min(quest.progress, quest.goal)}/{quest.goal})"
+        rows.append((self.font.render(text, False, color), quest.complete))
+        if quest.complete and quest.turn_in:
+            rows.append((self.font.render("> " + quest.turn_in, False, TEXT_COLOR), False))
+
+        title = self.title_font.render("Objective", False, "#F2C14E")
+        height = (OBJECTIVE_PADDING * 2 + title.get_height() + 6
+                  + sum(row.get_height() + 4 for row, _ in rows))
+        width = max(OBJECTIVE_WIDTH, max(row.get_width() for row, _ in rows)
+                    + OBJECTIVE_PADDING * 2)
+        box = pygame.Rect(0, 0, width, height)
+        box.bottomright = (SCREEN_WIDTH - HUD_MARGIN, SCREEN_HEIGHT - HUD_MARGIN)
+        pygame.draw.rect(screen, BUTTON_FILL_COLOR, box, border_radius=KEY_RADIUS)
+        pygame.draw.rect(screen, BUTTON_COLOR, box, width=2, border_radius=KEY_RADIUS)
+
+        x = box.x + OBJECTIVE_PADDING
+        y = box.y + OBJECTIVE_PADDING
+        screen.blit(title, (x, y))
+        y += title.get_height() + 6
+        for row, strike in rows:
+            screen.blit(row, (x, y))
+            if strike:
+                mid = y + row.get_height() // 2
+                pygame.draw.line(screen, OBJECTIVE_DONE_COLOR, (x - 2, mid),
+                                 (x + row.get_width() + 2, mid), 2)
+            y += row.get_height() + 4

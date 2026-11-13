@@ -1,8 +1,0 @@
-{
-  "npc_elder_01": [
-    { "speaker": "npc",    "text": "Oh, you're finally here, young one." },
-    { "speaker": "player", "text": "Hello. I'm looking for a way out of this forest." },
-    { "speaker": "npc",    "text": "That path is dangerous. Prepare yourself first." },
-    { "speaker": "npc",    "text": "Here, take a look at what I have. It isn't free, mind you." }
-  ]
-}

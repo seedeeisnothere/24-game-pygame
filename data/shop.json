@@ -3,6 +3,7 @@
     "title": "Elder's Wares",
     "stock": [
       {"item": "potion",      "price": 3},
+      {"item": "skip",        "price": 4},
       {"item": "sharp_blade", "price": 5},
       {"item": "heart_charm", "price": 5},
       {"item": "heavy_axe",   "price": 10},

@@ -11,6 +11,45 @@
         "dodge_time": 2.5,
         "dodge_keys": "WASD"
       }
+    },
+    "boss_forest": {
+      "name": "Crimson Warden",
+      "hp": 8,
+      "coin_reward": [15, 25],
+      "battle": {
+        "attack_wait": [2.5, 4.0],
+        "wave_sizes": [1, 2],
+        "attack_gap": [0.6, 0.9],
+        "dodge_time": 2.0,
+        "dodge_keys": "WASD"
+      },
+      "intro_dialogue": "boss_forest_intro",
+      "outro_dialogue": "boss_forest_outro"
+    },
+    "boss_cave": {
+      "name": "Azure Sentinel",
+      "hp": 8,
+      "coin_reward": [15, 25],
+      "battle": {
+        "attack_wait": [2.5, 4.0],
+        "wave_sizes": [1, 2],
+        "attack_gap": [0.6, 0.9],
+        "dodge_time": 2.0,
+        "dodge_keys": "WASD"
+      },
+      "intro_dialogue": "boss_cave_intro"
+    },
+    "boss_final": {
+      "name": "Jenny",
+      "hp": 12,
+      "coin_reward": [30, 50],
+      "battle": {
+        "attack_wait": [2.0, 3.2],
+        "wave_sizes": [1, 2, 3],
+        "attack_gap": [0.5, 0.8],
+        "dodge_time": 1.8,
+        "dodge_keys": "WASD"
+      }
     }
   }
 }

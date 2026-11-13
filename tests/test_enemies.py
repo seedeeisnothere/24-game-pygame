@@ -19,9 +19,9 @@ class TestEnemyData(unittest.TestCase):
 
     # Every enemy has sensible stats and battle settings
     def test_every_enemy_is_valid(self):
-        low, high = enemy["coin_reward"]
-        self.assertTrue(1 <= low <= high, f"{enemy_id}.coin_reward")
         for enemy_id, enemy in self.enemies.items():
+            low, high = enemy["coin_reward"]
+            self.assertTrue(1 <= low <= high, f"{enemy_id}.coin_reward")
             battle = enemy["battle"]
             self.assertTrue(enemy["name"], enemy_id)
             self.assertGreater(enemy["hp"], 0, enemy_id)

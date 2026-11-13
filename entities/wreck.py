@@ -3,6 +3,7 @@ import pygame
 
 # Wreck look
 WRECK_IMAGE_PATH = "assets/sprites/spaceship/wreck.png"
+FIXED_IMAGE_PATH = "assets/sprites/spaceship/fixed.png"   # repaired, standing up
 WRECK_SCALE = 6                     # much bigger than the player
 OUTLINE_COLOR = (52, 34, 30, 170)   # dark, slightly see-through brown
 OUTLINE_WIDTH = 2                   # in screen pixels, after scaling
@@ -71,6 +72,21 @@ class Wreck:
 
         self.smoke = []         # each puff is [x, y, age]
         self.smoke_timer = 0.0
+        self.fixed = False
+
+    # Swap to the repaired ship (ending cutscene): same spot, no more smoke.
+    # The hitbox stays the same, so nothing on the map moves.
+    def fix(self):
+        image = pygame.image.load(FIXED_IMAGE_PATH).convert_alpha()
+        size = (image.get_width() * WRECK_SCALE, image.get_height() * WRECK_SCALE)
+        self.image = pygame.transform.scale(image, size)
+        # Stand the ship's lowest pixel on the same ground point as the wreck
+        local = self.image.get_bounding_rect()
+        ground_x, ground_y = self.body.centerx, self.body.bottom
+        self.rect = self.image.get_rect(
+            topleft=(ground_x - local.centerx, ground_y - local.bottom))
+        self.smoke = []
+        self.fixed = True
 
     # Y value used to sort drawing order (things lower on screen draw on top).
     @property
@@ -80,7 +96,7 @@ class Wreck:
     # Add new smoke puffs on a timer and move/age the existing ones.
     def update(self, dt):
         self.smoke_timer -= dt
-        if self.smoke_timer <= 0:
+        if self.smoke_timer <= 0 and not self.fixed:
             self.smoke_timer = SMOKE_INTERVAL
             x = random.uniform(self.body.centerx - 20, self.body.centerx + 30)
             self.smoke.append([x, self.body.centery, 0.0])

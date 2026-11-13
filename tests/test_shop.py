@@ -1,7 +1,7 @@
 import unittest
 
-from systems.game_state import STARTING_POTIONS, GameState
-from systems.shop import Shop, load_shops
+from systems.game_state import STARTING_POTIONS, STARTING_SKIPS, GameState
+from systems.shop import CONSUMABLES, Shop, load_shops
 
 # Fake items and shop stock used by these tests
 ITEMS = {
@@ -10,6 +10,7 @@ ITEMS = {
 STOCK = [
     {"item": "potion", "price": 3},
     {"item": "axe", "price": 10},
+    {"item": "skip", "price": 4},
 ]
 
 
@@ -51,12 +52,21 @@ class TestShop(unittest.TestCase):
         self.assertEqual(state.potions, STARTING_POTIONS + 2)
         self.assertFalse(shop.is_sold_out(state, STOCK[0]))
 
+    # Skip tickets never sell out and add to the skip count
+    def test_skip_tickets_can_be_bought_repeatedly(self):
+        shop, state = self.make(8)
+        self.assertEqual(shop.buy(state, STOCK[2]), "bought")
+        self.assertEqual(shop.buy(state, STOCK[2]), "bought")
+        self.assertEqual(state.skips, STARTING_SKIPS + 2)
+        self.assertEqual(state.coins, 0)
+        self.assertFalse(shop.is_sold_out(state, STOCK[2]))
+
     # Shop data only lists real items with positive prices
     def test_shop_data_only_sells_real_items(self):
         items = GameState().inventory.items
         for shop in load_shops().values():
             for entry in shop["stock"]:
-                self.assertTrue(entry["item"] == "potion" or entry["item"] in items, entry)
+                self.assertTrue(entry["item"] in CONSUMABLES or entry["item"] in items, entry)
                 self.assertGreater(entry["price"], 0)
 
 

@@ -6,6 +6,7 @@ from scenes.title_scene import TitleScene
 from scenes.overworld_scene import OverworldScene
 from systems.game_state import GameState
 from scenes.gameover_scene import GameOverScene
+from systems.audio import MusicPlayer
 
 # Scene names mapped to their classes
 SCENES = {
@@ -27,9 +28,16 @@ class Game:
         self.running = True
         self.sfx_volume = DEFAULT_SFX_VOLUME
         self.bgm_volume = DEFAULT_BGM_VOLUME
+        self.music = MusicPlayer(self.bgm_volume)
         self.sounds = {
             "hover": pygame.mixer.Sound(HOVER_SFX_PATH),
             "select": pygame.mixer.Sound(SELECT_SFX_PATH),
+            "pickup": pygame.mixer.Sound(PICKUP_SFX_PATH),
+            "explosion": pygame.mixer.Sound(EXPLOSION_SFX_PATH),
+            "shoot": pygame.mixer.Sound(SHOOT_SFX_PATH),
+            "hit": pygame.mixer.Sound(HIT_SFX_PATH),
+            "death": pygame.mixer.Sound(DEATH_SFX_PATH),
+            "powerup": pygame.mixer.Sound(POWERUP_SFX_PATH),
         }
         self.walk_grass_sounds = [pygame.mixer.Sound(path) for path in WALK_GRASS_SFX_PATHS]
         self.next_walk_sfx_time = 0
@@ -43,6 +51,13 @@ class Game:
     # Switch scene right away, with no curtain.
     def set_scene(self, name):
         self.scene = SCENES[name](self)
+        self.play_scene_music()
+
+    # Each scene names its track in .music (None = keep whatever is playing).
+    def play_scene_music(self):
+        name = getattr(self.scene, "music", None)
+        if name is not None:
+            self.music.play(name, getattr(self.scene, "music_loop", True))
 
     # Play a short sound effect at the current SFX volume.
     def play_sfx(self, name):
@@ -92,6 +107,7 @@ class Game:
             if self.curtain.state == "covered":
                 target = self.next_scene
                 self.scene = SCENES[target](self) if isinstance(target, str) else target()
+                self.play_scene_music()
                 self.curtain.finish_loading()
         pygame.quit()
 

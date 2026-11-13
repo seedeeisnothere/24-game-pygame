@@ -35,6 +35,7 @@ PLAYER_COLOR = "#FFFFFF"
 PLAYER_DOT_RADIUS = 4
 DIM_ALPHA = 170
 BOSS_COLOR = "#E0524A"
+NPC_COLOR = "#4A90E0"
 SHOP_ICON_SIZE = 16
 # Seconds for one boss ring pulse
 PULSE_PERIOD = 1.2
@@ -226,6 +227,14 @@ class Minimap:
         pygame.draw.polygon(screen, BOSS_COLOR, diamond)
         pygame.draw.polygon(screen, "#FFFFFF", diamond, 2)
 
+    # Draw a blue diamond for an important NPC
+    def draw_npc(self, screen, pos, k):
+        x, y = pos
+        size = 6 * k
+        diamond = [(x, y - size), (x + size, y), (x, y + size), (x - size, y)]
+        pygame.draw.polygon(screen, NPC_COLOR, diamond)
+        pygame.draw.polygon(screen, "#FFFFFF", diamond, 2)
+
     # Draw the player as a white dot with a black border
     def draw_player(self, screen, pos, k):
         radius = round(PLAYER_DOT_RADIUS * k)
@@ -240,9 +249,15 @@ class Minimap:
         screen.blit(shadow, rect.move(2, 2))
         screen.blit(surface, rect)
 
-    # Draw shop, boss and player markers on a map view
-    def draw_markers(self, screen, view, player_center, shops, bosses, labels=False):
+    # Draw shop, NPC, boss and player markers on a map view.
+    # npcs is a list of (world position, name) pairs.
+    def draw_markers(self, screen, view, player_center, shops, bosses, npcs=(), labels=False):
         k = view.marker_scale
+        for world_pos, name in npcs:
+            pos = view.to_screen(*world_pos)
+            self.draw_npc(screen, pos, k)
+            if labels:
+                self.label(screen, name, pos)
         for world_pos in shops:
             pos = view.to_screen(*world_pos)
             self.draw_shop(screen, pos, k)
@@ -269,19 +284,19 @@ class Minimap:
         screen.blit(text, text.get_rect(center=box.center))
 
     # Draw the small minimap in the top-right corner
-    def draw(self, screen, player_center, shops=(), bosses=()):
+    def draw(self, screen, player_center, shops=(), bosses=(), npcs=()):
         if self.expanded:
             return
         screen.blit(self.small.panel, self.small.rect)
-        self.draw_markers(screen, self.small, player_center, shops, bosses)
+        self.draw_markers(screen, self.small, player_center, shops, bosses, npcs)
         self.draw_key_hint(screen)
 
     # Draw the big centred map when it is open
-    def draw_expanded(self, screen, player_center, shops=(), bosses=()):
+    def draw_expanded(self, screen, player_center, shops=(), bosses=(), npcs=()):
         if not self.expanded:
             return
         screen.blit(self.dim, (0, 0))
         screen.blit(self.big.panel, self.big.rect)
-        self.draw_markers(screen, self.big, player_center, shops, bosses, labels=True)
+        self.draw_markers(screen, self.big, player_center, shops, bosses, npcs, labels=True)
         hint = self.font.render("M / Esc = close", False, "#9AA3BD")
         screen.blit(hint, hint.get_rect(midtop=(SCREEN_WIDTH // 2, self.big.rect.bottom + 8)))

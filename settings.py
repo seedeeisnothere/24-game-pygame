@@ -13,7 +13,13 @@ HITBOX_HEIGHT = 36
 FONT_PATH = "assets/fonts/BoldPixels.ttf"
 HOVER_SFX_PATH = "assets/sfx/Hover.wav"
 SELECT_SFX_PATH = "assets/sfx/Select.wav"
-WALK_GRASS_SFX_PATHS = ["assets/sfx/Walk_grass1.wav", "assets/sfx/Walk_Grass2.wav"]
+PICKUP_SFX_PATH = "assets/sfx/Pickup.wav"
+EXPLOSION_SFX_PATH = "assets/sfx/Explosion.wav"
+SHOOT_SFX_PATH = "assets/sfx/Shoot.wav"
+HIT_SFX_PATH = "assets/sfx/Hit.wav"
+DEATH_SFX_PATH = "assets/sfx/Death.wav"
+POWERUP_SFX_PATH = "assets/sfx/PowerUp.wav"
+WALK_GRASS_SFX_PATHS = ["assets/sfx/Walk_Grass1.wav", "assets/sfx/Walk_Grass2.wav"]
 WALK_GRASS_VOLUME = 0.3
 WALK_GRASS_DELAY_MS = 135
 
@@ -44,7 +50,33 @@ CURTAIN_HOLD_TIME = 0.5
 
 # Audio
 DEFAULT_SFX_VOLUME = 0.7
-DEFAULT_BGM_VOLUME = 0.7
+DEFAULT_BGM_VOLUME = 0.3
+
+# Background music, one file per scene/mood (all CC0 from OpenGameArt)
+MUSIC_FADE_MS = 600
+# Scales all music down so it sits behind the sound effects.
+# 0.4 is about 8 dB quieter; lower = quieter music.
+MUSIC_MASTER = 0.4
+MUSIC_PATHS = {
+    "title": "assets/music/title.flac",   # volume-boosted (the original .ogg was very quiet)
+    "map1": "assets/music/map1.mp3",
+    "map2": "assets/music/map2.flac",     # volume-boosted (the original .ogg was very quiet)
+    "battle": "assets/music/battle.ogg",
+    "boss": "assets/music/boss.ogg",
+    "gameover": "assets/music/gameover.ogg",
+    "ending": "assets/music/ending.mp3",
+}
+# Per-track volume (0-1) so every song plays at the same loudness (~-18 LUFS).
+# Measured with ffmpeg's ebur128; loud tracks are turned down here.
+MUSIC_GAIN = {
+    "title": 1.0,
+    "map1": 0.79,      # -15.9 LUFS
+    "map2": 1.0,
+    "battle": 0.66,    # -14.4 LUFS
+    "boss": 0.32,      # -8.1 LUFS
+    "gameover": 1.0,   # -17.9 LUFS
+    "ending": 0.45,    # -11.1 LUFS
+}
 
 # Slide-in panels and small text
 PANEL_COLOR = "#1E2438"
@@ -57,8 +89,13 @@ CREDITS_FONT_SIZE = 24
 CREDITS_FIRST_Y = 200
 CREDITS_LINE_HEIGHT = 40
 CREDITS_LINES = [
-    "Art: Sprout Lands by Cup Nooble",
+    "Player: Among Us (Innersloth)",
+    "NPCs: Tiny Neighbours by vryell",
+    "Tiles: Valley of Ruin by kinodev",
+    "Tiles: Spring Forest by Seliel",
     "Font: BoldPixels by Yuki",
+    "SFX: bfxr, Pixabay",
+    "Music: OpenGameArt.org",
 ]
 
 # Volume sliders
@@ -98,16 +135,9 @@ PLANET_START_OFFSET = 620
 PLANET_BOB_AMPLITUDE = 10
 PLANET_BOB_PERIOD = 4.0
 
-# Battle dodge attacks (times in seconds)
-ATTACK_WAIT = (2.5, 5.0)        # min/max wait between waves
-WAVE_SIZES = (1, 1, 2)          # picked at random, so 1 is twice as likely
-ATTACK_GAP = (1.2, 2.0)         # min/max gap between attacks in a wave
-MAX_ATTACKS = 2
-DODGE_TIME = 1.8                # time to press the key
-DODGE_KEYS = "WASD"
-
 # Item icons and coin display
 POTION_ICON_PATH = "assets/item_assets/Healing_Potion.png"
+SKIP_ICON_PATH = "assets/item_assets/Skip_Ticket.png"
 COIN_ICON_PATH = "assets/item_assets/Coin.png"
 COIN_ICON_HEIGHT = 40
 COIN_GAP = 10

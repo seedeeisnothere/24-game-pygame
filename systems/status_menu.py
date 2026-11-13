@@ -32,6 +32,7 @@ class StatusMenu:
         # Item list on the right side
         self.row_rects = [pygame.Rect(680, 250 + i * 92, 420, 84) for i in range(MAX_ROWS)]
         self.potion_icon = load_icon(POTION_ICON_PATH, 36)
+        self.skip_icon = load_icon(SKIP_ICON_PATH, 28)
 
     def open(self):
         self.is_open = True
@@ -106,6 +107,9 @@ class StatusMenu:
         screen.blit(self.potion_icon, (180, 343))
         self.text(screen, self.small_font, f"Heal Potion  x{state.potions}", TEXT_COLOR,
                   topleft=(180 + self.potion_icon.get_width() + 12, 345))
+        screen.blit(self.skip_icon, (480, 347))
+        self.text(screen, self.small_font, f"Skip x{state.skips}", TEXT_COLOR,
+                  topleft=(480 + self.skip_icon.get_width() + 12, 345))
         # Show bonus damage from equipment, if any
         if state.damage_bonus:
             damage_text += f"  (+{state.damage_bonus})"

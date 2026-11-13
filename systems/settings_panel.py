@@ -79,6 +79,7 @@ class SettingsPanel:
         self.bgm_slider.handle_event(event)
         self.game.sfx_volume = self.sfx_slider.value
         self.game.bgm_volume = self.bgm_slider.value
+        self.game.music.set_volume(self.game.bgm_volume)
         # Play a sample sound when the SFX slider is let go
         if sfx_released:
             self.game.play_sfx("select")

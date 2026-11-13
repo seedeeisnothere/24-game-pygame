@@ -1,0 +1,194 @@
+{
+  "intro_wake": [
+    { "speaker": "player", "text": "Ah s*** bruh, How did that happen???" },
+    { "speaker": "player", "text": "JENNY!! Where are you??" },
+    { "speaker": "player", "text": "Where did she goes?" },
+    { "speaker": "player", "text": "Holy s***! I can breathe in this planet?? And why it's looks exactly like Earth but pixelated!?" },
+    { "speaker": "player", "text": "Whatever, at least I'm still alive." },
+    { "speaker": "player", "text": "Better fix this ship and find her." },
+    { "speaker": "player", "text": "Let's see… I need a fuel huh?" },
+    { "speaker": "player", "cue": "pan_village", "text": "Oh, a village? That’s surprising. I guess there must be some villager. Let's see what'd they look like." }
+  ],
+  "intro_gun": [
+    { "speaker": "player", "text": "Oh, A gun? Why it’s not pixelated? Whatever." }
+  ],
+  "npc_elder_01": [
+    { "speaker": "npc",    "text": "Oh, you're finally here, young one." },
+    { "speaker": "player", "text": "Hello. I'm looking for a way out of this forest." },
+    { "speaker": "npc",    "text": "That path is dangerous. Prepare yourself first." },
+    { "speaker": "npc",    "text": "Here, take a look at what I have. It isn't free, mind you." }
+  ],
+  "npc_5": [
+    { "speaker": "npc",    "text": "Yo bro, be careful up there. That's the graveyard." },
+    { "speaker": "player", "text": "eh. I'll be fine." },
+    { "speaker": "npc",    "text": "No bro, you don't understand. Even if you kill all of them, they seem to be there still when you come back!" },
+    { "speaker": "player", "text": "Shut the f*** up." },
+    { "speaker": "npc",    "text": "..." }
+  ],
+  "npc_6": [
+    { "speaker": "npc",    "text": "Ah... The water looks so nice." },
+    { "speaker": "npc",    "text": "Wish I could jump in." },
+    { "speaker": "player", "text": "..." }
+  ],
+  "npc_7": [
+    { "speaker": "npc",    "text": "Psst. Hey, you. Round guy." },
+    { "speaker": "player", "text": "...Me?" },
+    { "speaker": "npc",    "text": "You're the one with the 24 gun, right? Let me tell you a secret." },
+    { "speaker": "npc",    "text": "When you're stuck, look for a times first. 3 times 8, 4 times 6, 2 times 12. The answer is usually hiding in there." },
+    { "speaker": "player", "text": "That's... actually helpful." },
+    { "speaker": "npc",    "text": "And if the numbers are really bad, just use a skip ticket. Nobody's judging you." },
+    { "speaker": "player", "text": "You sound like you've been through a lot." },
+    { "speaker": "npc",    "text": "I failed my 24 exam six times. They don't let me hold a gun anymore." },
+    { "speaker": "player", "text": "..." },
+    { "speaker": "npc",    "text": "Good luck out there!" }
+  ],
+  "npc_10": [
+    { "speaker": "player", "text": "*waves*" },
+    { "speaker": "npc",    "text": "What is with this weirdo? Who are you? Why you look so roundy?" },
+    { "speaker": "npc",    "text": "And how’d you look like Among us? Are you John Among us??" },
+    { "speaker": "player", "text": "You can speak English?????" },
+    { "speaker": "npc",    "text": "Of course, I can! We all do!" },
+    { "speaker": "player", "text": "You even know the language’s called English!?" },
+    { "speaker": "npc",    "text": "Are you joking? Of course, I do!" },
+    { "speaker": "player", "text": "But how??" },
+    { "speaker": "npc",    "text": "Maybe The scriptwriter only know 1 or 2 language, and he chose for us to speak English??? Who knows?" },
+    { "speaker": "player", "text": "..." },
+    { "speaker": "player", "text": "Fair enough." },
+    { "speaker": "player", "text": "Okay, as you may noticed. I’m not from this planet. My ship crashed not so far from here. I want to get back to where I came from. So do you guys have like… fuel?" },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "npc",    "text": "Ah yes, we do. But you have to do some favor for us." },
+    { "speaker": "player", "text": "Yeah? What is it?" },
+    { "speaker": "npc",    "text": "I want you to get rid of the monster for us. They have been causing us trouble for so long now." },
+    { "speaker": "player", "text": "Huh? Me?" },
+    { "speaker": "npc",    "text": "Yeah, You. I see you have a gun. That’s the 24 gun." },
+    { "speaker": "player", "text": "I only see one?" },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "npc",    "text": "It’s just a name. You have to solve math 24 to shoot that gun!" },
+    { "speaker": "player", "text": "That’s.. complicated." },
+    { "speaker": "npc",    "text": "You’re new here. This is a planet where math 24 determines everything." },
+    { "speaker": "player", "text": "Okay, It’s kinda making sense now." },
+    { "speaker": "npc",    "text": "Yeah, I want you to kill 5 slimes under that big tree. Come back to me and I’ll give you some fuel." },
+    { "speaker": "player", "text": "Aight bet." },
+    { "speaker": "player", "text": "Oh! um, Did you see someone that wear something like I am around here?" },
+    { "speaker": "npc",    "text": "Um… No?" },
+    { "speaker": "player", "text": "Okay. Please let me know if you see her." },
+    { "speaker": "npc",    "text": "Yeah, sure." }
+  ],
+  "npc_10_waiting": [
+    { "speaker": "npc",    "text": "The slimes are still under the big tree. Come back when all 5 are gone." },
+    { "speaker": "player", "text": "Yeah yeah, I'm on it." }
+  ],
+  "npc_10_complete": [
+    { "speaker": "npc",    "text": "Oh, You actually did it!" },
+    { "speaker": "player", "text": "You expected me to fail or something?" },
+    { "speaker": "npc",    "text": "Of course not! Here’s your fuel." },
+    { "speaker": "player", "cue": "fuel_1", "text": "..." },
+    { "speaker": "player", "text": "Sadly, It’s not enough." },
+    { "speaker": "npc",    "cue": "boss_appear", "text": "That must be him. John Among us, defeat that guy." },
+    { "speaker": "player", "text": "What guy? Some dude make that explosive sound!? How am I supposed to beat that guy??" },
+    { "speaker": "npc",    "text": "If you’re not confident with your strength right now. There’s a shop that sells artifacts which make you stronger not so far from here." },
+    { "speaker": "player", "text": "What? How can that make me stronger?" },
+    { "speaker": "npc",    "text": "Just go check it out. There’s description under items." },
+    { "speaker": "player", "text": "..." },
+    { "speaker": "player", "text": "Fair enough." }
+  ],
+  "npc_10_boss_waiting": [
+    { "speaker": "npc",    "text": "That guy is still out there, in front of the cave." },
+    { "speaker": "npc",    "text": "If you're not strong enough yet, check out the shop by the well." },
+    { "speaker": "player", "text": "Yeah, yeah. I got it." }
+  ],
+  "npc_10_after": [
+    { "speaker": "npc",    "text": "Go check your ship, SON. Maybe that's your friend." }
+  ],
+  "npc_12": [
+    { "speaker": "npc",    "text": "Who are you?? What are you doing here???" },
+    { "speaker": "npc",    "text": "Get out of here now. This is my place" },
+    { "speaker": "npc",    "text": "Ain't nobody gettin in to my place." },
+    { "speaker": "player", "text": "What are you hidding in there?" },
+    { "speaker": "npc",    "text": "NONE OF YOUR GOD D*** BUSINESS. NOW GET THE F*** OUT" }
+  ],
+  "npc_10_forest_done": [
+    { "speaker": "npc",    "cue": "fuel_2", "text": "Ohhhh, you got it again!. Actually, I have one more quest for you." },
+    { "speaker": "npc",    "text": "There’s monster in the cave that have been around for so long. And it hurts a lot of our people. Its mysterious energy makes it so powerful that we’re on par with it at all." },
+    { "speaker": "player", "text": "And you think I can beat it?" },
+    { "speaker": "npc",    "text": "Yep." },
+    { "speaker": "player", "text": "Okay?, I'll kick its a**. with an exchange for some fuel too, please?" },
+    { "speaker": "npc",    "text": "Of course, I’ll give you more fuel." }
+  ],
+  "npc_10_cave_waiting": [
+    { "speaker": "npc",    "text": "The monster is still in the cave. Be careful, John Among us." },
+    { "speaker": "player", "text": "Relax, I'll handle it." }
+  ],
+  "npc_10_cave_done": [
+    { "speaker": "npc",    "text": "Whoa, You actually beat it! Here’s your fuel!" },
+    { "speaker": "player", "cue": "fuel_3", "text": "That should be enough fuel. I’m going to fix the ship and get back home now." },
+    { "speaker": "npc",    "text": "Oh I’ve seen someone lurking around your ship. maybe that’s your friend?" },
+    { "speaker": "player", "text": "Really? I’ll go take a look!" },
+    { "speaker": "player", "text": "Thank you, for everything." },
+    { "speaker": "npc",    "text": "No problem, SON." }
+  ],
+  "boss_forest_intro": [
+    { "speaker": "npc",    "text": "Who are you? what the F*** did you do to my slime? You're gonna pay for what you've done!" },
+    { "speaker": "player", "text": "Yeah bro, pack it up. You're not that tuff. Eat my sh**." }
+  ],
+  "boss_forest_outro": [
+    { "speaker": "player", "text": "It’s that easy. I’m kinda good at this though." }
+  ],
+  "boss_cave_intro": [
+    { "speaker": "player", "text": "So it’s you, Nopnapha! No, That’s not right. It’s you that people are afraid of huh!" },
+    { "speaker": "npc",    "text": "...." },
+    { "speaker": "player", "text": "..." },
+    { "speaker": "player", "text": "I shouldn’t have expect it to talk, should I? It didn’t even have a mouth. Whatever, Prepare to DIE!" }
+  ],
+  "jenny_meet": [
+    { "speaker": "player", "text": "JENNY!!!!!!!!!!!!!" },
+    { "speaker": "npc",    "text": "JOHN!!!!!!!" },
+    { "speaker": "player", "text": "JENNY!!!!!!!!!!!!!" },
+    { "speaker": "npc",    "text": "JOHN!!!!!!!" },
+    { "speaker": "player", "text": "JENNY!!!!!!!!!!!!!" },
+    { "speaker": "npc",    "text": "JOHN!!!!!!!" },
+    { "speaker": "player", "text": "JENNY!!!!!!!!!!!!!" },
+    { "speaker": "npc",    "text": "JOHN!!!!!!!" },
+    { "speaker": "player", "text": "That's enough b****." },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "npc",    "text": "Okay." },
+    { "speaker": "player", "text": "Where the f*** have you been??" },
+    { "speaker": "npc",    "text": "Maybe in your heart???" },
+    { "speaker": "player", "text": "Shut up bro." },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "npc",    "text": "Okay." },
+    { "speaker": "player", "text": "I'm about to fix the ship. Now, would you help me out?" },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "npc",    "text": "Why would you want to fix the ship?" },
+    { "speaker": "player", "text": "What? What do you mean? Of course, To get back to Earth??" },
+    { "speaker": "npc",    "text": "Why would you want to leave this planet?" },
+    { "speaker": "player", "text": "Huh?" },
+    { "speaker": "npc",    "text": "You must be very confused right now." },
+    { "speaker": "player", "text": "Yeah, No sh**" },
+    { "speaker": "npc",    "text": "..." },
+    { "speaker": "player", "cue": "jenny_reveal", "text": "WT*-" },
+    { "speaker": "player", "text": "What are you!? Omg you’re blocky??" },
+    { "speaker": "npc",    "text": "I'm the leader of all that monster." },
+    { "speaker": "player", "text": "You crashed the ship???" },
+    { "speaker": "npc",    "text": "Yes, I did. I want you to live here with me." },
+    { "speaker": "player", "text": "With that face of yours? Hell No! and what's with that 67 on your head?? Are you Brainrot type sh** or something???" },
+    { "speaker": "npc",    "text": "Whatever, you are going to live here on this planet with me forever and ever." },
+    { "speaker": "player", "text": "But why!?" },
+    { "speaker": "npc",    "text": "Because, I love you." },
+    { "speaker": "player", "text": "WT*???? And with that you decided to bring me here???" },
+    { "speaker": "npc",    "text": "Yes." },
+    { "speaker": "npc",    "text": "If you want to leave this planet, Then you'll have to get pass me." },
+    { "speaker": "npc",    "text": "But you already knew that." },
+    { "speaker": "player", "text": "I had a feeling you'd say that..." }
+  ],
+  "jenny_again": [
+    { "speaker": "npc",    "text": "You're not leaving this planet, John." },
+    { "speaker": "player", "text": "Watch me." }
+  ],
+  "jenny_outro": [
+    { "speaker": "player", "text": "You look even uglier after you transformed, B****." }
+  ],
+  "ship_fix": [
+    { "speaker": "player", "text": "That's all three fuel pieces. Let's fix the ship!" }
+  ]
+}

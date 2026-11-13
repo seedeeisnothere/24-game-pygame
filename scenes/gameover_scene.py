@@ -6,6 +6,9 @@ from systems.ui import Button
 
 # Game over screen with a single button back to the title.
 class GameOverScene(Scene):
+    music = "gameover"
+    music_loop = False
+
     def __init__(self, game):
         super().__init__(game)
         title_font = pygame.font.Font(FONT_PATH, TITLE_FONT_SIZE)
