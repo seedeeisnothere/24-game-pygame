@@ -14,7 +14,7 @@
     },
     "boss_forest": {
       "name": "Crimson Warden",
-      "hp": 8,
+      "hp": 15,
       "coin_reward": [15, 25],
       "battle": {
         "attack_wait": [2.5, 4.0],
@@ -28,7 +28,7 @@
     },
     "boss_cave": {
       "name": "Azure Sentinel",
-      "hp": 8,
+      "hp": 25,
       "coin_reward": [15, 25],
       "battle": {
         "attack_wait": [2.5, 4.0],
@@ -41,7 +41,7 @@
     },
     "boss_final": {
       "name": "Jenny",
-      "hp": 12,
+      "hp": 40,
       "coin_reward": [30, 50],
       "battle": {
         "attack_wait": [2.0, 3.2],

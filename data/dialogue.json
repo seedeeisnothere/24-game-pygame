@@ -13,9 +13,9 @@
     { "speaker": "player", "text": "Oh, A gun? Why it’s not pixelated? Whatever." }
   ],
   "npc_elder_01": [
-    { "speaker": "npc",    "text": "Oh, you're finally here, young one." },
-    { "speaker": "player", "text": "Hello. I'm looking for a way out of this forest." },
-    { "speaker": "npc",    "text": "That path is dangerous. Prepare yourself first." },
+    { "speaker": "npc",    "text": "Oh, you're looking for something?" },
+    { "speaker": "player", "text": "Hello. I'm looking for some artifacts, I guess?" },
+    { "speaker": "npc",    "text": "Well, you're in the right place." },
     { "speaker": "npc",    "text": "Here, take a look at what I have. It isn't free, mind you." }
   ],
   "npc_5": [
@@ -48,7 +48,7 @@
     { "speaker": "npc",    "text": "And how’d you look like Among us? Are you John Among us??" },
     { "speaker": "player", "text": "You can speak English?????" },
     { "speaker": "npc",    "text": "Of course, I can! We all do!" },
-    { "speaker": "player", "text": "You even know the language’s called English!?" },
+    { "speaker": "player", "text": "You even know the language is called English!?" },
     { "speaker": "npc",    "text": "Are you joking? Of course, I do!" },
     { "speaker": "player", "text": "But how??" },
     { "speaker": "npc",    "text": "Maybe The scriptwriter only know 1 or 2 language, and he chose for us to speak English??? Who knows?" },

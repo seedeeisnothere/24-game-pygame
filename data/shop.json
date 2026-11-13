@@ -1,6 +1,6 @@
 {
   "elder": {
-    "title": "Elder's Wares",
+    "title": "Shop",
     "stock": [
       {"item": "potion",            "price": 3},
       {"item": "skip",              "price": 4},
