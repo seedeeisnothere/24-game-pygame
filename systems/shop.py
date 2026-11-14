@@ -42,7 +42,9 @@ class Shop:
     def is_sold_out(self, state, entry):
         return entry["item"] not in CONSUMABLES and entry["item"] in state.inventory.owned
 
-    # Try to buy an entry; returns "bought", "owned" or "no_coins"
+    # Try to buy an entry; returns "bought", "owned" or "no_coins".
+    # Equipment goes straight into a free slot; if all slots are full it
+    # just stays in the inventory.
     def buy(self, state, entry):
         if self.is_sold_out(state, entry):
             return "owned"
@@ -54,6 +56,7 @@ class Shop:
             setattr(state, count, getattr(state, count) + 1)
         else:
             state.inventory.add(entry["item"])
+            state.inventory.equip(entry["item"])
         return "bought"
 
 
@@ -100,7 +103,7 @@ class ShopMenu:
     def show(self, text, color):
         self.message = text
         self.message_color = color
-        self.message_timer = 1.5
+        self.message_timer = 2.0
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_e):
@@ -120,7 +123,12 @@ class ShopMenu:
                 # Upgrades (equipment) get a power-up sound; potions/tickets a plain click
                 upgrade = entry["item"] not in CONSUMABLES
                 self.game.play_sfx("powerup" if upgrade else "select")
-                self.show(f"Bought {name}!", OK_COLOR)
+                if not upgrade:
+                    self.show(f"Bought {name}!", OK_COLOR)
+                elif entry["item"] in state.inventory.equipped:
+                    self.show(f"{name} - Item Equipped!", OK_COLOR)
+                else:
+                    self.show("Slots full - kept in inventory", TEXT_COLOR)
             elif result == "owned":
                 self.show("You already own that", ERROR_COLOR)
             else:

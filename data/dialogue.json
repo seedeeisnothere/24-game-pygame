@@ -18,6 +18,10 @@
     { "speaker": "npc",    "text": "Well, you're in the right place." },
     { "speaker": "npc",    "text": "Here, take a look at what I have. It isn't free, mind you." }
   ],
+  "npc_cave_shop": [
+    { "speaker": "npc",    "text": "A customer, down here? Didn't expect that." },
+    { "speaker": "npc",    "text": "Same stock as my cousin up in the village. Take a look." }
+  ],
   "npc_5": [
     { "speaker": "npc",    "text": "Yo bro, be careful up there. That's the graveyard." },
     { "speaker": "player", "text": "eh. I'll be fine." },

@@ -29,6 +29,21 @@ class TestShop(unittest.TestCase):
         self.assertEqual(state.coins, 2)
         self.assertIn("axe", state.inventory.owned)
 
+    # Bought equipment goes into a free slot right away
+    def test_buying_equipment_equips_it(self):
+        shop, state = self.make(12)
+        shop.buy(state, STOCK[1])
+        self.assertIn("axe", state.inventory.equipped)
+        self.assertEqual(state.damage_bonus, 2)
+
+    # All slots full: the new item is owned but not equipped
+    def test_full_slots_keep_item_in_inventory(self):
+        shop, state = self.make(12)
+        state.inventory.equipped = ["x", "y", "z"]
+        shop.buy(state, STOCK[1])
+        self.assertIn("axe", state.inventory.owned)
+        self.assertNotIn("axe", state.inventory.equipped)
+
     # Too few coins: nothing is bought or spent
     def test_not_enough_coins_changes_nothing(self):
         shop, state = self.make(5)

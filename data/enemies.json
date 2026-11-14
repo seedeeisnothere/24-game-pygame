@@ -3,12 +3,24 @@
     "enemy_1": {
       "name": "enemy_1",
       "hp": 3,
-      "coin_reward": [1, 5],
+      "coin_reward": [3, 5],
       "battle": {
         "attack_wait": [5.0, 8.0],
         "wave_sizes": [1],
         "attack_gap": [1.0, 1.5],
         "dodge_time": 2.5,
+        "dodge_keys": "WASD"
+      }
+    },
+    "cave_slime": {
+      "name": "Cave Slime",
+      "hp": 5,
+      "coin_reward": [4, 7],
+      "battle": {
+        "attack_wait": [4.0, 6.5],
+        "wave_sizes": [1],
+        "attack_gap": [1.0, 1.5],
+        "dodge_time": 2.2,
         "dodge_keys": "WASD"
       }
     },

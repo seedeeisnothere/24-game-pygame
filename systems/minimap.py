@@ -1,7 +1,9 @@
 import json
+import math
 import pygame
 from settings import *
 from systems.icons import load_icon
+from systems.objective_marker import MARKER_COLOR, MARKER_OUTLINE
 
 # Size of one map tile on the minimap, in pixels
 CELL = 3
@@ -235,6 +237,20 @@ class Minimap:
         pygame.draw.polygon(screen, NPC_COLOR, diamond)
         pygame.draw.polygon(screen, "#FFFFFF", diamond, 2)
 
+    # Draw a red map pin whose tip sits on the objective, bobbing gently
+    def draw_objective(self, screen, pos, k):
+        x, y = pos
+        y -= abs(math.sin(self.time * 4)) * 3 * k
+        radius = 5 * k
+        head = (x, y - radius * 2.2)
+        tip = [(x, y), (x - radius * 0.85, head[1] + radius * 0.5),
+               (x + radius * 0.85, head[1] + radius * 0.5)]
+        pygame.draw.circle(screen, MARKER_OUTLINE, head, radius + 2)
+        pygame.draw.polygon(screen, MARKER_OUTLINE, tip, 4)
+        pygame.draw.polygon(screen, MARKER_COLOR, tip)
+        pygame.draw.circle(screen, MARKER_COLOR, head, radius)
+        pygame.draw.circle(screen, "#FFFFFF", head, max(1, radius * 0.4))
+
     # Draw the player as a white dot with a black border
     def draw_player(self, screen, pos, k):
         radius = round(PLAYER_DOT_RADIUS * k)
@@ -251,7 +267,8 @@ class Minimap:
 
     # Draw shop, NPC, boss and player markers on a map view.
     # npcs is a list of (world position, name) pairs.
-    def draw_markers(self, screen, view, player_center, shops, bosses, npcs=(), labels=False):
+    def draw_markers(self, screen, view, player_center, shops, bosses, npcs=(), objective=None,
+                     labels=False):
         k = view.marker_scale
         for world_pos, name in npcs:
             pos = view.to_screen(*world_pos)
@@ -273,6 +290,9 @@ class Minimap:
         self.draw_player(screen, pos, k)
         if labels:
             self.label(screen, "You", pos)
+        # Objective pin goes over everything so it's never hidden
+        if objective is not None:
+            self.draw_objective(screen, view.to_screen(*objective), k)
 
     # Draw a small "M" key box in the minimap corner
     def draw_key_hint(self, screen):
@@ -284,19 +304,20 @@ class Minimap:
         screen.blit(text, text.get_rect(center=box.center))
 
     # Draw the small minimap in the top-right corner
-    def draw(self, screen, player_center, shops=(), bosses=(), npcs=()):
+    def draw(self, screen, player_center, shops=(), bosses=(), npcs=(), objective=None):
         if self.expanded:
             return
         screen.blit(self.small.panel, self.small.rect)
-        self.draw_markers(screen, self.small, player_center, shops, bosses, npcs)
+        self.draw_markers(screen, self.small, player_center, shops, bosses, npcs, objective)
         self.draw_key_hint(screen)
 
     # Draw the big centred map when it is open
-    def draw_expanded(self, screen, player_center, shops=(), bosses=(), npcs=()):
+    def draw_expanded(self, screen, player_center, shops=(), bosses=(), npcs=(), objective=None):
         if not self.expanded:
             return
         screen.blit(self.dim, (0, 0))
         screen.blit(self.big.panel, self.big.rect)
-        self.draw_markers(screen, self.big, player_center, shops, bosses, npcs, labels=True)
+        self.draw_markers(screen, self.big, player_center, shops, bosses, npcs, objective,
+                          labels=True)
         hint = self.font.render("M / Esc = close", False, "#9AA3BD")
         screen.blit(hint, hint.get_rect(midtop=(SCREEN_WIDTH // 2, self.big.rect.bottom + 8)))

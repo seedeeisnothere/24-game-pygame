@@ -12,6 +12,7 @@ from systems.icons import load_icon, dimmed
 from systems.hud import CoinCounter
 from systems.gun_shot import GunShot
 from systems.battle_fx import Tackle, Beam, PlayerMotion, draw_orb
+from systems.settings_panel import SettingsPanel
 
 COMBO_TIME = 10.0                  # seconds before the combo resets
 COMBO_MAX = 5                      # highest combo (= highest damage per solve)
@@ -153,16 +154,26 @@ class BattleScene(Scene):
         self.shown_enemy_hp = self.enemy_hp
         self.enemy_flash_img = self.enemy_img.copy()
         self.enemy_flash_img.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
+        # Pause menu: the whole battle freezes while it is open.
+        self.settings_panel = SettingsPanel(game, in_game=True)
 
     def handle_events(self, events):
         for event in events:
             # Ignore input once the battle has ended.
             if self.result:
                 continue
+            # Esc pauses the battle and opens the settings panel (Esc again = resume).
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if self.settings_panel.is_active():
+                    self.settings_panel.close()
+                else:
+                    self.settings_panel.open()
+                continue
+            if self.settings_panel.is_active():
+                self.settings_panel.handle_event(event)
+                continue
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.finish("flee")
-                elif event.scancode == pygame.KSCAN_Q:
+                if event.scancode == pygame.KSCAN_Q:
                     self.use_potion()
                 elif event.scancode == pygame.KSCAN_E:
                     self.use_skip()
@@ -203,7 +214,7 @@ class BattleScene(Scene):
         self.shown_enemy_hp = self.enemy_hp
         self.enemy_hp -= damage
         self.gun.start()
-        self.show(f"-{damage}", GOOD_COLOR)
+        self.show(f"-{damage}", BAD_COLOR)
         self.numbers = random_puzzle(self.puzzles, last=self.numbers)
         self.puzzle = Game24(self.numbers)
         if self.enemy_hp <= 0:
@@ -349,6 +360,10 @@ class BattleScene(Scene):
         self.leaving = True
 
     def update(self, dt):
+        # Settings panel open = paused: only the panel updates.
+        self.settings_panel.update(dt, pygame.mouse.get_pos())
+        if self.settings_panel.is_active():
+            return
         # Boss float keeps going, even after the battle ends.
         self.boss_timer += dt
 
@@ -580,3 +595,5 @@ class BattleScene(Scene):
         if self.result in ("win", "lose"):
             overlay_text = "VICTORY" if self.result == "win" else "DEFEATED"
             self.text(screen, self.big_font, overlay_text, TEXT_COLOR, center=(440, 400))
+
+        self.settings_panel.draw(screen)

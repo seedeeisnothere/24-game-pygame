@@ -40,6 +40,11 @@ class SettingsPanel:
         self.bgm_slider = Slider("BGM", PANEL_MARGIN, SLIDER_FIRST_Y + SLIDER_SPACING,
                                  game.bgm_volume, small_font)
 
+        # Fullscreen on/off (F11 does the same anywhere in the game).
+        self.fullscreen_button = Button("", (PANEL_MARGIN + BUTTON_WIDTH // 2, FULLSCREEN_BUTTON_Y),
+                                        small_font)
+        self.update_fullscreen_label()
+
         # Bottom button row. In-game, the Back button shrinks to fit a Home button.
         row_y = SCREEN_HEIGHT - PANEL_MARGIN - BUTTON_HEIGHT // 2
         back_width = BUTTON_WIDTH
@@ -50,9 +55,13 @@ class SettingsPanel:
             self.title_button = HomeButton(home_center)
         back_center = (PANEL_MARGIN + back_width // 2, row_y)
         self.back_button = Button("Back", back_center, big_font, back_width)
-        self.buttons = [self.back_button]
+        self.buttons = [self.back_button, self.fullscreen_button]
         if self.title_button is not None:
             self.buttons.append(self.title_button)
+
+    def update_fullscreen_label(self):
+        state = "On" if self.game.fullscreen else "Off"
+        self.fullscreen_button.set_text(f"Fullscreen: {state}   (F11)")
 
     # Start sliding in (only if fully hidden).
     def open(self):
@@ -86,6 +95,9 @@ class SettingsPanel:
         if self.back_button.handle_event(event):
             self.game.play_sfx("select")
             self.close()
+        if self.fullscreen_button.handle_event(event):
+            self.game.play_sfx("select")
+            self.game.toggle_fullscreen()
         if self.title_button is not None and self.title_button.handle_event(event):
             self.game.play_sfx("select")
             self.game.change_scene("title")
@@ -123,6 +135,7 @@ class SettingsPanel:
         # Vertical divider between the two halves
         pygame.draw.line(self.surface, SLIDER_TRACK_COLOR, (self.half, PANEL_MARGIN),
                          (self.half, SCREEN_HEIGHT - PANEL_MARGIN), 2)
+        self.update_fullscreen_label()
         self.sfx_slider.draw(self.surface)
         self.bgm_slider.draw(self.surface)
         for text, rect in self.credits:

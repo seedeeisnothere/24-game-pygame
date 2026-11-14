@@ -7,10 +7,18 @@ class Button:
     def __init__(self, text, center, font, width=BUTTON_WIDTH):
         self.rect = pygame.Rect(0, 0, width, BUTTON_HEIGHT)
         self.rect.center = center
-        self.label = font.render(text, False, TEXT_COLOR)
-        self.label_rect = self.label.get_rect(center=self.rect.center)
+        self.font = font
+        self.set_text(text)
         self.hovered = False
         self.pressed = False
+
+    # Change the label (re-rendered only when the text really changes).
+    def set_text(self, text):
+        if getattr(self, "text", None) == text:
+            return
+        self.text = text
+        self.label = self.font.render(text, False, TEXT_COLOR)
+        self.label_rect = self.label.get_rect(center=self.rect.center)
 
     # Update hover state. Returns True only on the frame the mouse enters.
     def update(self, mouse_pos):

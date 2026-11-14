@@ -24,6 +24,7 @@ class Game:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),
                                               pygame.SCALED, vsync=1)
         self.screen_rect = self.screen.get_rect()
+        self.fullscreen = False
         self.clock = pygame.time.Clock()
         self.running = True
         self.sfx_volume = DEFAULT_SFX_VOLUME
@@ -52,6 +53,12 @@ class Game:
     def set_scene(self, name):
         self.scene = SCENES[name](self)
         self.play_scene_music()
+
+    # Switch between a window and fullscreen. SCALED keeps the game's own
+    # resolution and stretches it to fit (with black bars if needed).
+    def toggle_fullscreen(self):
+        pygame.display.toggle_fullscreen()
+        self.fullscreen = not self.fullscreen
 
     # Each scene names its track in .music (None = keep whatever is playing).
     def play_scene_music(self):
@@ -93,6 +100,8 @@ class Game:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                    self.toggle_fullscreen()
             # Ignore input while the curtain is moving
             if not self.curtain.is_busy():
                 self.scene.handle_events(events)

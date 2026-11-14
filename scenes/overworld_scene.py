@@ -16,6 +16,7 @@ from systems.hud import (MenuHint, CoinCounter, HealthBar, ObjectiveTracker, Fue
                          COIN_ICON_HEIGHT, FUEL_ROW_GAP)
 from systems.game_state import FUEL_NEEDED
 from systems.minimap import Minimap
+from systems.objective_marker import ObjectiveMarker
 from systems.shop import ShopMenu
 from entities.wreck import Wreck
 from entities.gun import GunPickup
@@ -115,6 +116,14 @@ def tile_rect(col, row, cols=1, rows=1):
 # Center point of a tile; col 39.5 means halfway between two tiles.
 def tile_point(col, row):
     return (round((col + 0.5) * TILE_PX), round((row + 0.5) * TILE_PX))
+
+
+# Cave (map 2): slimes roam the open ground left and right of the bridge,
+# and a second shopkeeper waits just right of the bridge's bottom end.
+CAVE_SLIME_ZONES = [tile_rect(15, 18, 18, 24), tile_rect(47, 16, 20, 16)]
+CAVE_SLIME_WAVE = (2, 3)
+CAVE_SLIME_TINT = (150, 130, 200)   # darker, purple-ish slimes
+CAVE_SHOP_FEET = (round(43.5 * TILE_PX), 34 * TILE_PX)
 
 
 # Settings for each map:
@@ -220,8 +229,14 @@ class OverworldScene(Scene):
             return Enemy(feet_x - w // 2, feet_y - h, sprite=sprite,
                          enemy_id=config["boss_id"], kind=config["boss_id"])
 
+        # Cave slimes: tougher, tinted, and they don't count for the slime quest.
+        def make_cave_slime(x, y):
+            slime = SlimeSprite(tint=CAVE_SLIME_TINT)
+            return Enemy(x, y, sprite=slime, enemy_id="cave_slime", kind="cave_slime")
+
         self.boss = None
         self.farm = None
+        self.roamers = []
         self.encounter = EnemyEncounter([])
         if config.get("boss"):
             self.boss = make_boss(*config["boss"])
@@ -231,11 +246,17 @@ class OverworldScene(Scene):
             self.farm = EnemySpawner(FARM_ZONE, make_enemy, self.solid,
                                      wave_size=FARM_WAVE_SIZE,
                                      respawn_distance=FARM_RESPAWN_DISTANCE)
+        elif map_id == "map2":
+            self.roamers = [EnemySpawner(zone, make_cave_slime, self.solid,
+                                         wave_size=CAVE_SLIME_WAVE,
+                                         respawn_distance=FARM_RESPAWN_DISTANCE)
+                            for zone in CAVE_SLIME_ZONES]
         self.menu_hint = MenuHint()
         self.coin_counter = CoinCounter()
         self.fuel_counter = FuelCounter(self.coin_counter.top + COIN_ICON_HEIGHT + FUEL_ROW_GAP)
         self.health_bar = HealthBar()
         self.objective = ObjectiveTracker()
+        self.objective_marker = ObjectiveMarker()
         self.minimap = Minimap(map_path, (self.world_width, self.world_height),
                                **config["minimap"])
         self.last_dt = 0.0
@@ -266,6 +287,11 @@ class OverworldScene(Scene):
                 self.npcs.append(npc)
                 if number == HEADMAN:
                     self.headman = npc
+        elif map_id == "map2":
+            cave_shop = NPC("Shopkeeper", 0, 0, SHOP_NPC_SPRITE, "npc_cave_shop",
+                            shop_id="elder", sheet=True)
+            cave_shop.place(CAVE_SHOP_FEET)
+            self.npcs.append(cave_shop)
         self.nearby_npc = None
         self.talking_npc = None
         self.talk_hint = pygame.font.Font(FONT_PATH, SMALL_FONT_SIZE).render(
@@ -780,14 +806,50 @@ class OverworldScene(Scene):
             self.farm.wave_size = FARM_WAVE_SIZE
 
     def update_farm(self):
-        if self.farm is None:
-            return
-        self.update_farm_size()
-        new = self.farm.update(self.hitbox.center)
+        new = []
+        for spawner in self.roamers:
+            new += spawner.update(self.hitbox.center)
+        if self.farm is not None:
+            self.update_farm_size()
+            new += self.farm.update(self.hitbox.center)
         if new:
             # Drop defeated farm enemies (keep the boss) and add the new wave.
             self.encounter.enemies = [e for e in self.encounter.enemies
                                       if e is self.boss or not e.defeated] + new
+
+    # World rect the objective marker points at for the current quest, or None.
+    # Targets on the other map point at the portal that leads there.
+    def objective_target(self):
+        quest = self.game.state.quest
+        if quest is None:
+            return None
+        here = self.map_id
+        portal = self.portals[0][0] if self.portals else None
+        headman = self.headman.rect if self.headman else portal
+        if quest.complete:
+            # Done: go hand it in (no turn-in = nothing to point at).
+            return headman if quest.turn_in else None
+        if quest.id == "find_fuel":
+            return headman
+        if quest.id == SLIME_QUEST:
+            if here != "map1":
+                return portal
+            slimes = [e.rect for e in self.encounter.enemies
+                      if e.kind == "slime" and not e.defeated]
+            if slimes:
+                px, py = self.hitbox.center
+                return min(slimes, key=lambda r: (r.centerx - px) ** 2 + (r.centery - py) ** 2)
+            return FARM_ZONE
+        if quest.id in ("forest_boss", "cave_boss"):
+            if (self.boss in self.encounter.enemies and self.boss.kind == quest.target
+                    and not self.boss.defeated):
+                return self.boss.rect
+            return portal
+        if quest.id in ("go_to_ship", "final_boss"):
+            if self.jenny is None:
+                return portal
+            return self.jenny.rect if self.jenny in self.npcs else self.wreck.body
+        return None
 
     def start_battle(self, enemy):
         self.close_popups()
@@ -856,7 +918,7 @@ class OverworldScene(Scene):
         step = WALK_SPEED
         # Slow down diagonals so they aren't faster than straight moves.
         if dx != 0 and dy != 0:
-            step = WALK_SPEED * 3 // 4
+            step = round(WALK_SPEED * 3 / 4)
 
         old_x = self.player_x
         old_y = self.player_y
@@ -981,12 +1043,18 @@ class OverworldScene(Scene):
                        npcs=[(npc.rect.center, npc.name) for npc in self.npcs if npc.on_minimap],
                        bosses=[self.boss.rect.center] if self.boss in self.encounter.enemies
                        and not self.boss.defeated else [])
+        target = self.objective_target()
+        markers["objective"] = target.center if target else None
         # During a dialogue (and its camera pans) and the whole crash intro,
         # only the text box is shown.
         if not self.dialogue.active and self.intro is None and self.repair is None:
             if not self.menu.is_open and not self.shop.is_open:
                 self.menu_hint.draw(screen)
                 self.objective.draw(screen, self.game.state.quest)
+                player = (self.player_x + self.player_width / 2,
+                          self.player_y + self.player_height / 2)
+                self.objective_marker.draw(screen, self.objective_target(), player,
+                                           self.cam_x, self.cam_y, self.last_dt)
             state = self.game.state
             self.health_bar.draw(screen, state.hp, state.max_hp, self.last_dt)
             self.coin_counter.draw(screen, state.coins)

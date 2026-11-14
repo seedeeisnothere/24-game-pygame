@@ -27,7 +27,8 @@ def load_enemy_data(enemy_id, path=ENEMY_DATA_PATH):
 # Slime animation cut from the sprite sheet. Works like the player's AnimatedSprite
 # (same attributes/methods) so Enemy can use either one.
 class SlimeSprite:
-    def __init__(self, color=None, scale=4, battle_scale=10, frame_duration_ms=110):
+    # tint (optional RGB) multiplies the colors, e.g. to make darker cave slimes.
+    def __init__(self, color=None, scale=4, battle_scale=10, frame_duration_ms=110, tint=None):
         sheet = pygame.image.load(SLIME_SHEET_PATH).convert_alpha()
         if color is None:
             color = random.choice(SLIME_COLORS)
@@ -37,7 +38,10 @@ class SlimeSprite:
         frames = []
         for col in range(SLIME_FRAMES):
             crop = SLIME_CROP.move(col * SLIME_FRAME, row * SLIME_FRAME)
-            frames.append(sheet.subsurface(crop).copy())
+            frame = sheet.subsurface(crop).copy()
+            if tint:
+                frame.fill(tint, special_flags=pygame.BLEND_RGB_MULT)
+            frames.append(frame)
         size = (SLIME_CROP.width * scale, SLIME_CROP.height * scale)
         self.size = size
 
