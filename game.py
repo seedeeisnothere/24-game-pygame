@@ -56,9 +56,20 @@ class Game:
 
     # Switch between a window and fullscreen. SCALED keeps the game's own
     # resolution and stretches it to fit (with black bars if needed).
+    # Some systems can't toggle in place, so fall back to re-making the window;
+    # if that fails too, stay as we are instead of crashing.
     def toggle_fullscreen(self):
-        pygame.display.toggle_fullscreen()
-        self.fullscreen = not self.fullscreen
+        want = not self.fullscreen
+        try:
+            pygame.display.toggle_fullscreen()
+        except pygame.error:
+            flags = pygame.SCALED | (pygame.FULLSCREEN if want else 0)
+            try:
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags, vsync=1)
+            except pygame.error as error:
+                print(f"[warn] fullscreen not available: {error}")
+                return
+        self.fullscreen = want
 
     # Each scene names its track in .music (None = keep whatever is playing).
     def play_scene_music(self):
